@@ -1,6 +1,6 @@
 {
   "name": "hyperdrive-import-files",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Import some files and folders into a Hyperdrive",
   "license": "MIT",
   "repository": "juliangruber/hyperdrive-import-files",
