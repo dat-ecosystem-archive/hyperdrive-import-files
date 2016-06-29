@@ -30,7 +30,7 @@ test('no files', t => {
 })
 
 test('single file', t => {
-  t.plan(3)
+  t.plan(4)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -42,12 +42,13 @@ test('single file', t => {
     archive.list((err, entries) => {
       t.error(err)
       t.equal(entries.length, 1)
+      t.equal(entries[0].name, 'd.txt')
     })
   })
 })
 
 test('multiple files', t => {
-  t.plan(3)
+  t.plan(5)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -60,29 +61,33 @@ test('multiple files', t => {
     archive.list((err, entries) => {
       t.error(err)
       t.equal(entries.length, 2)
+      t.equal(entries[0].name, 'd.txt')
+      t.equal(entries[1].name, 'e.txt')
     })
   })
 })
 
 test('directory', t => {
-  t.plan(3)
+  t.plan(5)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
   hyperImport(archive, [
-    `${__dirname}/fixture/a/b/c/`
+    `${__dirname}/fixture/a/b`
   ], err => {
     t.error(err)
 
     archive.list((err, entries) => {
       t.error(err)
       t.equal(entries.length, 2)
+      t.equal(entries[0].name, 'b/c/e.txt')
+      t.equal(entries[1].name, 'b/c/d.txt')
     })
   })
 })
 
 test('files and directories', t => {
-  t.plan(3)
+  t.plan(6)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -95,6 +100,9 @@ test('files and directories', t => {
     archive.list((err, entries) => {
       t.error(err)
       t.equal(entries.length, 3)
+      t.equal(entries[0].name, 'fixture/a/b/c/e.txt')
+      t.equal(entries[1].name, 'fixture/a/b/c/d.txt')
+      t.equal(entries[2].name, 'index.js')
     })
   })
 })

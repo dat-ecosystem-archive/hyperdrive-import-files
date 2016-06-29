@@ -2,11 +2,13 @@
 
 const pump = require('pump')
 const fs = require('fs')
-const join = require('path').join
+const {join, relative} = require('path')
+const common = require('common-path-prefix')
 
 module.exports = (archive, files, cb) => {
   if (!files || !files.length) return setImmediate(cb)
   files = Array.from(files)
+  const prefix = common(files)
 
   const next = () => {
     const file = files.shift()
@@ -23,7 +25,7 @@ module.exports = (archive, files, cb) => {
         })
       } else {
         const rs = fs.createReadStream(file)
-        const ws = archive.createFileWriteStream(file)
+        const ws = archive.createFileWriteStream(relative(prefix, file))
         pump(rs, ws, err => {
           if (err) return cb(err)
           next()
