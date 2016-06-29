@@ -3,6 +3,8 @@
 
 Import some files and folders into a [hyperdrive](https://github.com/mafintosh/hyperdrive).
 
+[![Build Status](https://travis-ci.org/juliangruber/hyperdrive-import-files.svg?branch=master)](https://travis-ci.org/juliangruber/hyperdrive-import-files)
+
 ## Example
 
 ```js
