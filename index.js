@@ -2,7 +2,8 @@
 
 const pump = require('pump')
 const fs = require('fs')
-const {join, relative} = require('path')
+const join = require('path').join
+const relative = require('path').relative
 const common = require('common-path-prefix')
 
 module.exports = (archive, files, cb) => {
