@@ -5,7 +5,7 @@ const hyperdrive = require('hyperdrive')
 const memdb = require('memdb')
 const hyperImport = require('..')
 
-const sort = entries => entries.sort((a, b) => b.name - a.name)
+const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
 
 test('no files', t => {
   t.plan(6)
