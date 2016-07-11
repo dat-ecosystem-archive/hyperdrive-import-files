@@ -20,9 +20,10 @@ module.exports = (archive, files, opts, cb) => {
   files = Array.from(files)
   const prefix = common(files)
   const emitError = (err) => err && status.emit('error', err)
+  let watcher
 
   if (opts.live) {
-    const watcher = chokidar.watch([files], {
+    watcher = chokidar.watch([files], {
       persistent: true
     })
     watcher.on('add', path => consume(path))
@@ -30,7 +31,7 @@ module.exports = (archive, files, opts, cb) => {
     watcher.on('unlink', path => noop) // TODO
   }
 
-  const status = new EventEmitter
+  const status = new EventEmitter()
   status.close = () => watcher && watcher.close()
 
   const consume = (file, cb) => {
