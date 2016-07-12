@@ -5,6 +5,8 @@ const hyperdrive = require('hyperdrive')
 const memdb = require('memdb')
 const hyperImport = require('..')
 
+const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
+
 test('no files', t => {
   t.plan(6)
 
@@ -79,9 +81,10 @@ test('directory', t => {
 
     archive.list((err, entries) => {
       t.error(err)
+      entries = sort(entries)
       t.equal(entries.length, 2)
-      t.equal(entries[0].name, 'b/c/e.txt')
-      t.equal(entries[1].name, 'b/c/d.txt')
+      t.equal(entries[0].name, 'b/c/d.txt')
+      t.equal(entries[1].name, 'b/c/e.txt')
     })
   })
 })
@@ -99,9 +102,10 @@ test('files and directories', t => {
 
     archive.list((err, entries) => {
       t.error(err)
+      entries = sort(entries)
       t.equal(entries.length, 3)
-      t.equal(entries[0].name, 'fixture/a/b/c/e.txt')
-      t.equal(entries[1].name, 'fixture/a/b/c/d.txt')
+      t.equal(entries[0].name, 'fixture/a/b/c/d.txt')
+      t.equal(entries[1].name, 'fixture/a/b/c/e.txt')
       t.equal(entries[2].name, 'index.js')
     })
   })
