@@ -33,20 +33,30 @@ $ npm install hyperdrive-import-files
 
 ### hyperImport(archive, files, [, options], cb)
 
-Recursively import `files` into `archive` and call `cb` with the potential error. The import happens sequentually.
+Recursively import `files` into `archive` and call `cb` with the potential error. The import happens sequentually. Returns a `status` object.
 
 To enable watching, set `live: true`, like this:
 
 ```js
-const watch = hyperImport(archive, files, { live: true }, err => {
+const status = hyperImport(archive, files, { live: true }, err => {
   console.log('initial import done')  
 })
-watch.on('error', err => {
+status.on('error', err => {
   // ...  
 })
 // when you want to quit:
-watch.close()
+status.close()
 ```
+
+### status
+
+Events:
+
+- `error`
+
+Properties:
+
+- `fileCount`: The count of currently known files
 
 ## License
 

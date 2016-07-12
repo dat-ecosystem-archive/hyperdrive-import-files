@@ -32,11 +32,11 @@ test('no files', t => {
 })
 
 test('single file', t => {
-  t.plan(4)
+  t.plan(5)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
-  hyperImport(archive, [
+  const status = hyperImport(archive, [
     `${__dirname}/fixture/a/b/c/d.txt`
   ], err => {
     t.error(err)
@@ -45,16 +45,17 @@ test('single file', t => {
       t.error(err)
       t.equal(entries.length, 1)
       t.equal(entries[0].name, 'd.txt')
+      t.equal(status.fileCount, 1)
     })
   })
 })
 
 test('multiple files', t => {
-  t.plan(5)
+  t.plan(6)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
-  hyperImport(archive, [
+  const status = hyperImport(archive, [
     `${__dirname}/fixture/a/b/c/d.txt`,
     `${__dirname}/fixture/a/b/c/e.txt`
   ], err => {
@@ -65,16 +66,17 @@ test('multiple files', t => {
       t.equal(entries.length, 2)
       t.equal(entries[0].name, 'd.txt')
       t.equal(entries[1].name, 'e.txt')
+      t.equal(status.fileCount, 2)
     })
   })
 })
 
 test('directory', t => {
-  t.plan(5)
+  t.plan(6)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
-  hyperImport(archive, [
+  const status = hyperImport(archive, [
     `${__dirname}/fixture/a/b`
   ], err => {
     t.error(err)
@@ -85,16 +87,17 @@ test('directory', t => {
       t.equal(entries.length, 2)
       t.equal(entries[0].name, 'b/c/d.txt')
       t.equal(entries[1].name, 'b/c/e.txt')
+      t.equal(status.fileCount, 2)
     })
   })
 })
 
 test('files and directories', t => {
-  t.plan(6)
+  t.plan(7)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
-  hyperImport(archive, [
+  const status = hyperImport(archive, [
     `${__dirname}/fixture/a/b/c/`,
     `${__dirname}/index.js`
   ], err => {
@@ -107,6 +110,7 @@ test('files and directories', t => {
       t.equal(entries[0].name, 'fixture/a/b/c/d.txt')
       t.equal(entries[1].name, 'fixture/a/b/c/e.txt')
       t.equal(entries[2].name, 'index.js')
+      t.equal(status.fileCount, 3)
     })
   })
 })

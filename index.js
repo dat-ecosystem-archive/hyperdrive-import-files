@@ -33,6 +33,7 @@ module.exports = (archive, files, opts, cb) => {
 
   const status = new EventEmitter()
   status.close = () => watcher && watcher.close()
+  status.fileCount = 0
 
   const consume = (file, cb) => {
     fs.stat(file, (err, stat) => {
@@ -43,6 +44,7 @@ module.exports = (archive, files, opts, cb) => {
   }
 
   const consumeFile = (file, cb) => {
+    status.fileCount++
     const rs = fs.createReadStream(file)
     const ws = archive.createFileWriteStream(relative(prefix, file))
     pump(rs, ws, cb || emitError)
