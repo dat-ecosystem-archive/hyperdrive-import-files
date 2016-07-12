@@ -57,6 +57,7 @@ Events:
 Properties:
 
 - `fileCount`: The count of currently known files
+- `totalSize`: Total file size in bytes
 
 ## License
 

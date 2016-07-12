@@ -4,6 +4,7 @@ const test = require('tape')
 const hyperdrive = require('hyperdrive')
 const memdb = require('memdb')
 const hyperImport = require('..')
+const fs = require('fs')
 
 const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
 
@@ -32,7 +33,7 @@ test('no files', t => {
 })
 
 test('single file', t => {
-  t.plan(5)
+  t.plan(6)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -46,12 +47,13 @@ test('single file', t => {
       t.equal(entries.length, 1)
       t.equal(entries[0].name, 'd.txt')
       t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
     })
   })
 })
 
 test('multiple files', t => {
-  t.plan(6)
+  t.plan(7)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -67,12 +69,13 @@ test('multiple files', t => {
       t.equal(entries[0].name, 'd.txt')
       t.equal(entries[1].name, 'e.txt')
       t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
     })
   })
 })
 
 test('directory', t => {
-  t.plan(6)
+  t.plan(7)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -88,12 +91,13 @@ test('directory', t => {
       t.equal(entries[0].name, 'b/c/d.txt')
       t.equal(entries[1].name, 'b/c/e.txt')
       t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
     })
   })
 })
 
 test('files and directories', t => {
-  t.plan(7)
+  t.plan(8)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -111,6 +115,7 @@ test('files and directories', t => {
       t.equal(entries[1].name, 'fixture/a/b/c/e.txt')
       t.equal(entries[2].name, 'index.js')
       t.equal(status.fileCount, 3)
+      t.equal(status.totalSize, 9 + fs.statSync(`${__dirname}/index.js`).size)
     })
   })
 })

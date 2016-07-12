@@ -34,17 +34,22 @@ module.exports = (archive, files, opts, cb) => {
   const status = new EventEmitter()
   status.close = () => watcher && watcher.close()
   status.fileCount = 0
+  status.totalSize = 0
 
   const consume = (file, cb) => {
     fs.stat(file, (err, stat) => {
       if (err) return cb(err)
-      if (stat.isDirectory()) consumeDir(file, cb)
-      else consumeFile(file, cb)
+      if (stat.isDirectory()) {
+        consumeDir(file, cb)
+      } else {
+        status.fileCount++
+        status.totalSize += stat.size
+        consumeFile(file, cb)
+      }
     })
   }
 
   const consumeFile = (file, cb) => {
-    status.fileCount++
     const rs = fs.createReadStream(file)
     const ws = archive.createFileWriteStream(relative(prefix, file))
     pump(rs, ws, cb || emitError)
