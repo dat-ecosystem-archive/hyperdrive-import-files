@@ -48,12 +48,14 @@ status.on('error', err => {
 status.close()
 ```
 
+If you want to resume importing an already existing archive, set `resume: true `. This module then checks a file's size and mtime to determine whether it needs to be updated or created.
+
 ### status
 
 Events:
 
 - `error` (`err`)
-- `file imported` (`path`)
+- `file imported` (`path`, `existed`)
 
 Properties:
 

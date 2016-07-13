@@ -44,20 +44,42 @@ module.exports = (archive, files, opts, cb) => {
       } else {
         status.fileCount++
         status.totalSize += stat.size
-        consumeFile(file, cb)
+        consumeFile(file, stat, cb)
       }
     })
   }
 
-  const consumeFile = (file, cb) => {
+  const consumeFile = (file, stat, cb) => {
     cb = cb || emitError
-    const rs = fs.createReadStream(file)
-    const ws = archive.createFileWriteStream(relative(prefix, file))
-    pump(rs, ws, err => {
+    const hyperPath = relative(prefix, file)
+    const next = () => {
+      const rs = fs.createReadStream(file)
+      const ws = archive.createFileWriteStream({
+        name: hyperPath,
+        mtime: stat.mtime
+      })
+      pump(rs, ws, done)
+    }
+    const done = (err, existed) => {
       if (err) return cb(err)
-      status.emit('file imported', file)
+      status.emit('file imported', file, existed)
       cb()
-    })
+    }
+
+    if (!opts.resume) {
+      next()
+    } else {
+      archive.get(hyperPath, (err, entry) => {
+        if (err ||
+          entry.length !== stat.size ||
+          entry.mtime !== stat.mtime.getTime()
+        ) {
+          next()
+        } else {
+          done(null, true)
+        }
+      })
+    }
   }
 
   const consumeDir = (file, cb) => {
