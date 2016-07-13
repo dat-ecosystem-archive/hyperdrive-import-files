@@ -52,7 +52,8 @@ status.close()
 
 Events:
 
-- `error`
+- `error` (`err`)
+- `file imported` (`path`)
 
 Properties:
 

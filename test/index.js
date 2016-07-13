@@ -33,7 +33,7 @@ test('no files', t => {
 })
 
 test('single file', t => {
-  t.plan(6)
+  t.plan(7)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -49,6 +49,9 @@ test('single file', t => {
       t.equal(status.fileCount, 1)
       t.equal(status.totalSize, 4)
     })
+  })
+  status.on('file imported', file => {
+    t.equal(file, `${__dirname}/fixture/a/b/c/d.txt`)
   })
 })
 

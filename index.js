@@ -50,9 +50,14 @@ module.exports = (archive, files, opts, cb) => {
   }
 
   const consumeFile = (file, cb) => {
+    cb = cb || emitError
     const rs = fs.createReadStream(file)
     const ws = archive.createFileWriteStream(relative(prefix, file))
-    pump(rs, ws, cb || emitError)
+    pump(rs, ws, err => {
+      if (err) return cb(err)
+      status.emit('file imported', file)
+      cb()
+    })
   }
 
   const consumeDir = (file, cb) => {
