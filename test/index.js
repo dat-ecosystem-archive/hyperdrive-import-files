@@ -122,3 +122,26 @@ test('files and directories', t => {
     })
   })
 })
+
+test('resume', t => {
+  t.plan(6)
+
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  let status = hyperImport(archive, [
+    `${__dirname}/fixture/a/b/c/`
+  ], {
+    resume: true
+  }, err => {
+    t.error(err)
+    status = hyperImport(archive, [
+      `${__dirname}/fixture/a/b/c/`
+    ], {
+      resume: true
+    }, err => {
+      t.error(err)
+    })
+    status.on('file imported', (_, updated) => t.ok(updated))
+  })
+  status.on('file imported', (_, updated) => t.notOk(updated))
+})
