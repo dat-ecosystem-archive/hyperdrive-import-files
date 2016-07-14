@@ -60,9 +60,9 @@ module.exports = (archive, files, opts, cb) => {
       })
       pump(rs, ws, done)
     }
-    const done = (err, existed) => {
+    const done = (err, updated) => {
       if (err) return cb(err)
-      status.emit('file imported', file, existed)
+      status.emit('file imported', file, updated)
       cb()
     }
 

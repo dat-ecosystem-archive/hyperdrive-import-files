@@ -141,7 +141,7 @@ test('resume', t => {
     }, err => {
       t.error(err)
     })
-    status.on('file imported', (_, existed) => t.ok(existed))
+    status.on('file imported', (_, updated) => t.ok(updated))
   })
-  status.on('file imported', (_, existed) => t.notOk(existed))
+  status.on('file imported', (_, updated) => t.notOk(updated))
 })
