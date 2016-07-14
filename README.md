@@ -31,7 +31,7 @@ $ npm install hyperdrive-import-files
 
 ## API
 
-### hyperImport(archive, files, [, options], cb)
+### hyperImport(archive, files, [, options][, cb])
 
 Recursively import `files` into `archive` and call `cb` with the potential error. The import happens sequentually. Returns a `status` object.
 

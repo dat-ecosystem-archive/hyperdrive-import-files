@@ -12,14 +12,19 @@ const series = require('run-series')
 const noop = () => {}
 
 module.exports = (archive, files, opts, cb) => {
+  if (!files || !files.length) return setImmediate(cb)
+  files = Array.from(files)
+
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
   }
-  if (!files || !files.length) return setImmediate(cb)
-  files = Array.from(files)
-  const prefix = common(files)
+  opts = opts || {}
+
   const emitError = (err) => err && status.emit('error', err)
+  cb = cb || emitError
+
+  const prefix = common(files)
   const entries = {}
   let watcher
 

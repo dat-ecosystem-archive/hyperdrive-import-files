@@ -145,3 +145,14 @@ test('resume', t => {
   })
   status.on('file imported', (_, updated) => t.notOk(updated))
 })
+
+test('optional callback', t => {
+  t.plan(1)
+
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  let status = hyperImport(archive, [
+    `${__dirname}/fixture/a/b/c/d.txt`
+  ])
+  status.on('file imported', () => t.ok(true))
+})
