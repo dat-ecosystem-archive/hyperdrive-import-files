@@ -20,6 +20,7 @@ module.exports = (archive, files, opts, cb) => {
   files = Array.from(files)
   const prefix = common(files)
   const emitError = (err) => err && status.emit('error', err)
+  const entries = {}
   let watcher
 
   if (opts.live) {
@@ -69,16 +70,15 @@ module.exports = (archive, files, opts, cb) => {
     if (!opts.resume) {
       next()
     } else {
-      archive.get(hyperPath, (err, entry) => {
-        if (err ||
-          entry.length !== stat.size ||
-          entry.mtime !== stat.mtime.getTime()
-        ) {
-          next()
-        } else {
-          done(null, true)
-        }
-      })
+      const entry = entries[hyperPath]
+      if (!entry ||
+        entry.length !== stat.size ||
+        entry.mtime !== stat.mtime.getTime()
+      ) {
+        next()
+      } else {
+        done(null, true)
+      }
     }
   }
 
@@ -99,7 +99,14 @@ module.exports = (archive, files, opts, cb) => {
     consume(file, next)
   }
 
-  next()
+  if (opts.resume) {
+    archive.list()
+    .on('error', cb)
+    .on('data', entry => { entries[entry.name] = entry })
+    .on('end', next)
+  } else {
+    next()
+  }
 
   return status
 }
