@@ -12,14 +12,14 @@ const series = require('run-series')
 const noop = () => {}
 
 module.exports = (archive, files, opts, cb) => {
-  if (!files || !files.length) return setImmediate(cb)
-  files = Array.from(files)
-
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
   }
   opts = opts || {}
+
+  if (!files || !files.length) return setImmediate(cb || noop)
+  files = Array.from(files)
 
   const emitError = (err) => err && status.emit('error', err)
   cb = cb || emitError
