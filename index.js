@@ -105,7 +105,7 @@ module.exports = (archive, files, opts, cb) => {
   }
 
   if (opts.resume) {
-    archive.list()
+    archive.list({ live: false })
     .on('error', cb)
     .on('data', entry => { entries[entry.name] = entry })
     .on('end', next)
