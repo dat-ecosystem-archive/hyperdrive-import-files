@@ -156,3 +156,28 @@ test('optional callback', t => {
   ])
   status.on('file imported', () => t.ok(true))
 })
+
+test('ignore', t => {
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  const status = hyperImport(archive, [
+    `${__dirname}/fixture/ignore`
+  ], {
+    ignore: /\/\.dat\//,
+    live: true
+  }, err => {
+    t.error(err)
+    fs.writeFile(`${__dirname}/fixture/ignore/.dat/beep.txt`, 'boop', err => {
+      t.error(err)
+      t.end()
+      status.close()
+    })
+  })
+  status.on('file imported', () => t.fail())
+})
+
+test('chokidar bug', t => {
+  // chokidar sometimes keeps the process open
+  t.end()
+  process.exit()
+})

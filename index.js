@@ -8,6 +8,7 @@ const common = require('common-path-prefix')
 const EventEmitter = require('events').EventEmitter
 const chokidar = require('chokidar')
 const series = require('run-series')
+const match = require('anymatch')
 
 const noop = () => {}
 
@@ -30,7 +31,8 @@ module.exports = (archive, files, opts, cb) => {
 
   if (opts.live) {
     watcher = chokidar.watch([files], {
-      persistent: true
+      persistent: true,
+      ignored: opts.ignore
     })
     watcher.on('add', path => consume(path))
     watcher.on('change', path => consume(path))
@@ -43,6 +45,7 @@ module.exports = (archive, files, opts, cb) => {
   status.totalSize = 0
 
   const consume = (file, cb) => {
+    if (opts.ignore && match(opts.ignore, file)) return cb()
     fs.stat(file, (err, stat) => {
       if (err) return cb(err)
       if (stat.isDirectory()) {

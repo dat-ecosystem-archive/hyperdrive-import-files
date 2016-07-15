@@ -35,6 +35,12 @@ $ npm install hyperdrive-import-files
 
 Recursively import `files` into `archive` and call `cb` with the potential error. The import happens sequentually. Returns a `status` object.
 
+Options
+
+- `live`: keep watching
+- `resume`: assume the archive isn't fresh
+- `ignore`: [anymatch](https://npmjs.org/package/anymatch) expression to ignore files
+
 To enable watching, set `live: true`, like this:
 
 ```js
