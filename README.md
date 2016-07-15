@@ -55,7 +55,8 @@ If you want to resume importing an already existing archive, set `resume: true `
 Events:
 
 - `error` (`err`)
-- `file imported` (`path`, `updated?`)
+- `file imported` ({ `path`, `mode=updated|created` })
+- `file skipped` ({ `path` })
 
 Properties:
 

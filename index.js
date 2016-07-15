@@ -48,8 +48,6 @@ module.exports = (archive, files, opts, cb) => {
       if (stat.isDirectory()) {
         consumeDir(file, cb)
       } else {
-        status.fileCount++
-        status.totalSize += stat.size
         consumeFile(file, stat, cb)
       }
     })
@@ -58,32 +56,36 @@ module.exports = (archive, files, opts, cb) => {
   const consumeFile = (file, stat, cb) => {
     cb = cb || emitError
     const hyperPath = relative(prefix, file)
-    const next = () => {
+    const next = mode => {
       const rs = fs.createReadStream(file)
       const ws = archive.createFileWriteStream({
         name: hyperPath,
         mtime: stat.mtime
       })
-      pump(rs, ws, done)
-    }
-    const done = (err, updated) => {
-      if (err) return cb(err)
-      status.emit('file imported', file, updated)
-      cb()
+      pump(rs, ws, err => {
+        if (err) return cb(err)
+        entry = entries[hyperPath] = entry || {}
+        entry.length = stat.size
+        entry.mtime = stat.mtime.getTime()
+        status.emit('file imported', {
+          path: file,
+          mode
+        })
+        cb()
+      })
     }
 
-    if (!opts.resume) {
-      next()
+    let entry = entries[hyperPath]
+    if (!opts.resume || !entry) {
+      status.fileCount++
+      status.totalSize += stat.size
+      next('created')
+    } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
+      status.totalSize = status.totalSize - entry.length + stat.size
+      next('updated')
     } else {
-      const entry = entries[hyperPath]
-      if (!entry ||
-        entry.length !== stat.size ||
-        entry.mtime !== stat.mtime.getTime()
-      ) {
-        next()
-      } else {
-        done(null, true)
-      }
+      status.emit('file skipped', { path: file })
+      cb()
     }
   }
 
@@ -107,7 +109,11 @@ module.exports = (archive, files, opts, cb) => {
   if (opts.resume) {
     archive.list({ live: false })
     .on('error', cb)
-    .on('data', entry => { entries[entry.name] = entry })
+    .on('data', entry => {
+      entries[entry.name] = entry
+      status.fileCount++
+      status.totalSize += entry.length
+    })
     .on('end', next)
   } else {
     next()
