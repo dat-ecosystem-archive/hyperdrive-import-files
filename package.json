@@ -14,6 +14,7 @@
     "test": "tape test && standard"
   },
   "dependencies": {
+    "anymatch": "^1.3.0",
     "chokidar": "^1.6.0",
     "common-path-prefix": "^1.0.0",
     "pump": "^1.0.1",
