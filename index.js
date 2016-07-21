@@ -4,7 +4,6 @@ const pump = require('pump')
 const fs = require('fs')
 const join = require('path').join
 const relative = require('path').relative
-const common = require('common-path-prefix')
 const EventEmitter = require('events').EventEmitter
 const chokidar = require('chokidar')
 const series = require('run-series')
@@ -12,25 +11,21 @@ const match = require('anymatch')
 
 const noop = () => {}
 
-module.exports = (archive, files, opts, cb) => {
+module.exports = (archive, dir, opts, cb) => {
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
   }
   opts = opts || {}
 
-  if (!files || !files.length) return setImmediate(cb || noop)
-  files = Array.from(files)
-
   const emitError = (err) => err && status.emit('error', err)
   cb = cb || emitError
 
-  const prefix = common(files)
   const entries = {}
   let watcher
 
   if (opts.live) {
-    watcher = chokidar.watch([files], {
+    watcher = chokidar.watch([dir], {
       persistent: true,
       ignored: opts.ignore
     })
@@ -58,7 +53,7 @@ module.exports = (archive, files, opts, cb) => {
 
   const consumeFile = (file, stat, cb) => {
     cb = cb || emitError
-    const hyperPath = relative(prefix, file)
+    const hyperPath = relative(dir, file)
     const next = mode => {
       const rs = fs.createReadStream(file)
       const ws = archive.createFileWriteStream({
@@ -102,11 +97,8 @@ module.exports = (archive, files, opts, cb) => {
     })
   }
 
-  const next = err => {
-    if (err) return cb(err)
-    const file = files.shift()
-    if (!file) return cb()
-    consume(file, next)
+  const next = () => {
+    consumeDir(dir, cb || emitError)
   }
 
   if (opts.resume) {
