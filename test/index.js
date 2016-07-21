@@ -29,7 +29,7 @@ test('import', t => {
 })
 
 test('resume', t => {
-  t.plan(6)
+  t.plan(12)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -37,14 +37,34 @@ test('resume', t => {
     resume: true
   }, err => {
     t.error(err)
-    status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
-      resume: true
-    }, err => {
-      t.error(err)
-    })
-    status.on('file imported', (_, updated) => t.ok(updated))
+    archive.createFileWriteStream('d.txt').on('finish', () => {
+      status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
+        resume: true
+      }, err => {
+        t.error(err)
+      })
+      status.on('file imported', file => {
+        t.equal(file.mode, 'updated', 'updated')
+        t.equal(status.fileCount, 3)
+        t.equal(status.totalSize, 13)
+      })
+      status.on('file skipped', file => {
+        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
+      })
+    }).end('bleerg')
   })
-  status.on('file imported', (_, updated) => t.notOk(updated))
+
+  let i = 0
+  status.on('file imported', file => {
+    t.equal(file.mode, 'created', 'created')
+    if (!i++) {
+      t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
+    } else {
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+    }
+  })
 })
 
 test('optional callback', t => {
