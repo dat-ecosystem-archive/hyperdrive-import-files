@@ -74,7 +74,7 @@ module.exports = (archive, dir, opts, cb) => {
     }
 
     let entry = entries[hyperPath]
-    if (!opts.resume || !entry) {
+    if (!entry) {
       status.fileCount++
       status.totalSize += stat.size
       next('created')
