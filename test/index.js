@@ -8,6 +8,14 @@ const fs = require('fs')
 
 const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
 
+test('cleanup', t => {
+  const base = `${__dirname}/fixture/a/b/c`
+  fs.readdirSync(base)
+  .filter(file => ['d.txt', 'e.txt'].indexOf(file) === -1)
+  .forEach(file => fs.unlinkSync(`${base}/${file}`))
+  t.end()
+})
+
 test('import', t => {
   t.plan(7)
 
