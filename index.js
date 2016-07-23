@@ -27,8 +27,7 @@ module.exports = (archive, dir, opts, cb) => {
   if (opts.live) {
     watcher = chokidar.watch([dir], {
       persistent: true,
-      ignored: opts.ignore,
-      ignoreInitial: true
+      ignored: opts.ignore
     })
     watcher.once('ready', () => {
       watcher.on('add', path => consume(path))
