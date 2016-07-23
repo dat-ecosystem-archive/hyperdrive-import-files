@@ -23,6 +23,7 @@ module.exports = (archive, dir, opts, cb) => {
 
   const entries = {}
   let watcher
+  let liveListStream
 
   if (opts.live) {
     watcher = chokidar.watch([dir], {
@@ -35,7 +36,10 @@ module.exports = (archive, dir, opts, cb) => {
   }
 
   const status = new EventEmitter()
-  status.close = () => watcher && watcher.close()
+  status.close = () => {
+    if (watcher) watcher.close()
+    if (liveListStream) liveListStream.destroy()
+  }
   status.fileCount = 0
   status.totalSize = 0
 
@@ -62,9 +66,6 @@ module.exports = (archive, dir, opts, cb) => {
       })
       pump(rs, ws, err => {
         if (err) return cb(err)
-        entry = entries[hyperPath] = entry || {}
-        entry.length = stat.size
-        entry.mtime = stat.mtime.getTime()
         status.emit('file imported', {
           path: file,
           mode
@@ -98,18 +99,30 @@ module.exports = (archive, dir, opts, cb) => {
   }
 
   const next = () => {
-    consumeDir(dir, cb || emitError)
+    consumeDir(dir, err => {
+      if (liveListStream && !opts.live) liveListStream.destroy()
+      cb(err)
+    })
   }
 
   if (opts.resume) {
     archive.list({ live: false })
     .on('error', cb)
     .on('data', entry => {
+      console.log('initialStream', entry)
       entries[entry.name] = entry
       status.fileCount++
       status.totalSize += entry.length
     })
-    .on('end', next)
+    .on('end', () => {
+      liveListStream = archive.list({ live: true })
+      .on('error', err => status.emit('error', err))
+      .on('data', entry => {
+        console.log('liveListStream', entry)
+        entries[entry.name] = entry
+      })
+      next()
+    })
   } else {
     next()
   }

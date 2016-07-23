@@ -36,20 +36,19 @@ test('resume', t => {
   let status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
     resume: true
   }, err => {
-    t.error(err)
+    t.error(err, 'initial import')
+
     archive.createFileWriteStream('d.txt').on('finish', () => {
       status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
         resume: true
-      }, err => {
-        t.error(err)
-      })
+      }, err => t.error(err, '2nd import'))
       status.on('file imported', file => {
         t.equal(file.mode, 'updated', 'updated')
-        t.equal(status.fileCount, 3)
-        t.equal(status.totalSize, 13)
+        t.equal(status.fileCount, 3, 'file count')
+        t.equal(status.totalSize, 13, 'total size')
       })
       status.on('file skipped', file => {
-        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
+        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`, 'skipped')
       })
     }).end('bleerg')
   })
@@ -58,11 +57,11 @@ test('resume', t => {
   status.on('file imported', file => {
     t.equal(file.mode, 'created', 'created')
     if (!i++) {
-      t.equal(status.fileCount, 1)
-      t.equal(status.totalSize, 4)
+      t.equal(status.fileCount, 1, 'file count')
+      t.equal(status.totalSize, 4, 'total size')
     } else {
-      t.equal(status.fileCount, 2)
-      t.equal(status.totalSize, 9)
+      t.equal(status.fileCount, 2, 'file count')
+      t.equal(status.totalSize, 9, 'total size')
     }
   })
 })
