@@ -30,9 +30,11 @@ module.exports = (archive, dir, opts, cb) => {
       ignored: opts.ignore,
       ignoreInitial: true
     })
-    watcher.on('add', path => consume(path))
-    watcher.on('change', path => consume(path))
-    watcher.on('unlink', path => noop) // TODO
+    watcher.once('ready', () => {
+      watcher.on('add', path => consume(path))
+      watcher.on('change', path => consume(path))
+      watcher.on('unlink', path => noop) // TODO
+    })
   }
 
   const status = new EventEmitter()
