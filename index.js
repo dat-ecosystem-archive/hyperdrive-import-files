@@ -4,6 +4,7 @@ const pump = require('pump')
 const fs = require('fs')
 const join = require('path').join
 const relative = require('path').relative
+const basename = require('path').basename
 const EventEmitter = require('events').EventEmitter
 const chokidar = require('chokidar')
 const series = require('run-series')
@@ -11,7 +12,7 @@ const match = require('anymatch')
 
 const noop = () => {}
 
-module.exports = (archive, dir, opts, cb) => {
+module.exports = (archive, target, opts, cb) => {
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
@@ -25,7 +26,7 @@ module.exports = (archive, dir, opts, cb) => {
   let watcher
 
   if (opts.live) {
-    watcher = chokidar.watch([dir], {
+    watcher = chokidar.watch([target], {
       persistent: true,
       ignored: opts.ignore
     })
@@ -55,7 +56,9 @@ module.exports = (archive, dir, opts, cb) => {
 
   const consumeFile = (file, stat, cb) => {
     cb = cb || emitError
-    const hyperPath = relative(dir, file)
+    const hyperPath = file === target
+      ? basename(file)
+      : relative(target, file)
     const next = mode => {
       const rs = fs.createReadStream(file)
       const ws = archive.createFileWriteStream({
@@ -100,7 +103,7 @@ module.exports = (archive, dir, opts, cb) => {
   }
 
   const next = () => {
-    consumeDir(dir, cb || emitError)
+    consume(target, cb || emitError)
   }
 
   if (opts.resume) {

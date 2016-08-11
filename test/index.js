@@ -16,7 +16,7 @@ test('cleanup', t => {
   t.end()
 })
 
-test('import', t => {
+test('import directory', t => {
   t.plan(7)
 
   const drive = hyperdrive(memdb())
@@ -32,6 +32,25 @@ test('import', t => {
       t.equal(entries[1].name, 'e.txt')
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
+    })
+  })
+})
+
+test('import file', t => {
+  t.plan(6)
+
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/d.txt`, err => {
+    t.error(err)
+
+    archive.list((err, entries) => {
+      t.error(err)
+      entries = sort(entries)
+      t.equal(entries.length, 1)
+      t.equal(entries[0].name, 'd.txt')
+      t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
     })
   })
 })
