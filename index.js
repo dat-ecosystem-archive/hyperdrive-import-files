@@ -47,7 +47,7 @@ module.exports = (archive, target, opts, cb) => {
     fs.stat(file, (err, stat) => {
       if (err) return cb(err)
       if (stat.isDirectory()) {
-        consumeDir(file, cb)
+        consumeDir(file, stat, cb)
       } else {
         consumeFile(file, stat, cb)
       }
@@ -92,14 +92,23 @@ module.exports = (archive, target, opts, cb) => {
     }
   }
 
-  const consumeDir = (file, cb) => {
+  const consumeDir = (file, stat, cb) => {
     cb = cb || emitError
-    fs.readdir(file, (err, _files) => {
-      if (err) return cb(err)
-      series(_files.map(_file => done => {
-        consume(join(file, _file), done)
-      }), cb)
+    archive.createFileWriteStream({
+      name: relative(target, file),
+      type: 'directory',
+      mtime: stat.mtime
     })
+    .on('error', cb)
+    .on('finish', () => {
+      fs.readdir(file, (err, _files) => {
+        if (err) return cb(err)
+        series(_files.map(_file => done => {
+          consume(join(file, _file), done)
+        }), cb)
+      })
+    })
+    .end()
   }
 
   const next = () => {
@@ -110,6 +119,7 @@ module.exports = (archive, target, opts, cb) => {
     archive.list({ live: false })
     .on('error', cb)
     .on('data', entry => {
+      if (entry.type === 'directory') return
       entries[entry.name] = entry
       status.fileCount++
       status.totalSize += entry.length
