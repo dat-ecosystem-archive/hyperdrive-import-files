@@ -17,7 +17,7 @@ test('cleanup', t => {
 })
 
 test('import directory', t => {
-  t.plan(7)
+  t.plan(8)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -27,9 +27,10 @@ test('import directory', t => {
     archive.list((err, entries) => {
       t.error(err)
       entries = sort(entries)
-      t.equal(entries.length, 2)
-      t.equal(entries[0].name, 'd.txt')
-      t.equal(entries[1].name, 'e.txt')
+      t.equal(entries.length, 3)
+      t.equal(entries[0].name, '')
+      t.equal(entries[1].name, 'd.txt')
+      t.equal(entries[2].name, 'e.txt')
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
     })
