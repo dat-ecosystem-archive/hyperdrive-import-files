@@ -94,13 +94,11 @@ module.exports = (archive, target, opts, cb) => {
 
   const consumeDir = (file, stat, cb) => {
     cb = cb || emitError
-    archive.createFileWriteStream({
+    archive.append({
       name: relative(target, file),
       type: 'directory',
       mtime: stat.mtime
-    })
-    .on('error', cb)
-    .on('finish', () => {
+    }, () => {
       fs.readdir(file, (err, _files) => {
         if (err) return cb(err)
         series(_files.map(_file => done => {
@@ -108,7 +106,6 @@ module.exports = (archive, target, opts, cb) => {
         }), cb)
       })
     })
-    .end()
   }
 
   const next = () => {
