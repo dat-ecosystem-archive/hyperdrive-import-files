@@ -5,6 +5,8 @@ const hyperdrive = require('hyperdrive')
 const memdb = require('memdb')
 const hyperImport = require('..')
 const fs = require('fs')
+const path = require('path')
+const raf = require('random-access-file')
 
 const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
 
@@ -80,6 +82,51 @@ test('resume', t => {
         t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
       })
     }).end('bleerg')
+  })
+
+  let i = 0
+  status.on('file imported', file => {
+    t.equal(file.mode, 'created', 'created')
+    if (!i++) {
+      t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
+    } else {
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+    }
+  })
+})
+
+test('resume with raf', t => {
+  t.plan(12)
+
+  const drive = hyperdrive(memdb())
+  const dir = `${__dirname}/fixture/a/b/c/`
+  const archive = drive.createArchive({
+    file: function (name) {
+      return raf(path.join(dir, name))
+    }
+  })
+  let status = hyperImport(archive, dir, {
+    resume: true
+  }, err => {
+    t.error(err)
+    fs.writeFile(`${__dirname}/fixture/a/b/c/d.txt`, 'foo\n', () => {
+      status = hyperImport(archive, dir, {
+        resume: true
+      }, err => {
+        t.error(err)
+      })
+      status.on('file imported', file => {
+        if (file.path !== `${__dirname}/fixture/a/b/c/d.txt`) t.fail('wrong file')
+        t.equal(file.mode, 'updated', 'updated')
+        t.equal(status.fileCount, 2)
+        t.equal(status.totalSize, 9)
+      })
+      status.on('file skipped', file => {
+        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
+      })
+    })
   })
 
   let i = 0
