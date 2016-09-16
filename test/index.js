@@ -59,7 +59,7 @@ test('import file', t => {
 })
 
 test('resume', t => {
-  t.plan(12)
+  t.plan(13)
 
   const drive = hyperdrive(memdb())
   const archive = drive.createArchive()
@@ -72,11 +72,12 @@ test('resume', t => {
         resume: true
       }, err => {
         t.error(err)
+        t.equal(status.fileCount, 2)
+        t.equal(status.totalSize, 9)
       })
       status.on('file imported', file => {
         t.equal(file.mode, 'updated', 'updated')
-        t.equal(status.fileCount, 3)
-        t.equal(status.totalSize, 13)
+        t.equal(file.path, `${__dirname}/fixture/a/b/c/d.txt`)
       })
       status.on('file skipped', file => {
         t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)

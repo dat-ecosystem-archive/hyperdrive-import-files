@@ -70,6 +70,8 @@ module.exports = (archive, target, opts, cb) => {
         entry = entries[hyperPath] = entry || {}
         entry.length = stat.size
         entry.mtime = stat.mtime.getTime()
+        status.fileCount++
+        status.totalSize += stat.size
         status.emit('file imported', {
           path: file,
           mode
@@ -80,13 +82,12 @@ module.exports = (archive, target, opts, cb) => {
 
     let entry = entries[hyperPath]
     if (!entry) {
-      status.fileCount++
-      status.totalSize += stat.size
       next('created')
     } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
-      status.totalSize = status.totalSize - entry.length + stat.size
       next('updated')
     } else {
+      status.fileCount++
+      status.totalSize += entry.length
       status.emit('file skipped', { path: file })
       cb()
     }
@@ -118,8 +119,6 @@ module.exports = (archive, target, opts, cb) => {
     .on('data', entry => {
       if (entry.type === 'directory') return
       entries[entry.name] = entry
-      status.fileCount++
-      status.totalSize += entry.length
     })
     .on('end', next)
   } else {
