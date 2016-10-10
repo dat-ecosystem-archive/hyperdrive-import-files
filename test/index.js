@@ -201,6 +201,31 @@ test('ignore', t => {
   status.on('file imported', () => t.ok(false))
 })
 
+test('duplicate directory', t => {
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  const directory = `${__dirname}/fixture/a/b/c/`
+
+  hyperImport(archive, directory, err => {
+    t.error(err)
+    hyperImport(archive, directory, {
+      resume: true
+    }, err => {
+      t.error(err)
+      archive.list((err, entries) => {
+        t.error(err)
+
+        entries = sort(entries)
+        t.equal(entries.length, 3)
+        t.equal(entries[0].name, '')
+        t.equal(entries[1].name, 'd.txt')
+        t.equal(entries[2].name, 'e.txt')
+        t.end()
+      })
+    })
+  })
+})
+
 test('chokidar bug', t => {
   // chokidar sometimes keeps the process open
   t.end()
