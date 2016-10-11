@@ -144,8 +144,9 @@ module.exports = (archive, target, opts, cb) => {
 
 function joinHyperPath (base, path) {
   path = join(base, path)
-  // don't allow '.'
   if (path === '.') {
+    // '.' is returned when base is '' and path is '': aka, the root directory
+    // in hyperdrive, root should be '' or '/', so we replace it with this special case
     return ''
   }
   return path
