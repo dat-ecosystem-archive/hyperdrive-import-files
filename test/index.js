@@ -226,9 +226,49 @@ test('duplicate directory', t => {
   })
 })
 
+test('import directory with basePath', t => {
+  t.plan(8)
+
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, { basePath: 'foo/bar' }, err => {
+    t.error(err)
+
+    archive.list((err, entries) => {
+      t.error(err)
+      entries = sort(entries)
+      t.equal(entries.length, 3)
+      t.equal(entries[0].name, 'foo/bar')
+      t.equal(entries[1].name, 'foo/bar/d.txt')
+      t.equal(entries[2].name, 'foo/bar/e.txt')
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+    })
+  })
+})
+
+test('import file with basePath', t => {
+  t.plan(6)
+
+  const drive = hyperdrive(memdb())
+  const archive = drive.createArchive()
+  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/d.txt`, { basePath: 'foo/bar' }, err => {
+    t.error(err)
+
+    archive.list((err, entries) => {
+      t.error(err)
+      entries = sort(entries)
+      t.equal(entries.length, 1)
+      t.equal(entries[0].name, 'foo/bar/d.txt')
+      t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
+    })
+  })
+})
+
+// NOTE: this test must be last
 test('chokidar bug', t => {
   // chokidar sometimes keeps the process open
   t.end()
   process.exit()
 })
-

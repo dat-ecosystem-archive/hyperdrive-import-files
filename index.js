@@ -22,6 +22,7 @@ module.exports = (archive, target, opts, cb) => {
   const emitError = (err) => err && status.emit('error', err)
   cb = cb || emitError
 
+  const basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
   const entries = {}
   let watcher
 
@@ -57,8 +58,8 @@ module.exports = (archive, target, opts, cb) => {
   const consumeFile = (file, stat, cb) => {
     cb = cb || emitError
     const hyperPath = file === target
-      ? basename(file)
-      : relative(target, file)
+      ? joinHyperPath(basePath, basename(file))
+      : joinHyperPath(basePath, relative(target, file))
     const next = mode => {
       const rs = fs.createReadStream(file)
       const ws = archive.createFileWriteStream({
@@ -94,7 +95,7 @@ module.exports = (archive, target, opts, cb) => {
 
   const consumeDir = (file, stat, cb) => {
     cb = cb || emitError
-    const hyperPath = relative(target, file)
+    const hyperPath = joinHyperPath(basePath, relative(target, file))
     let entry = entries[hyperPath]
 
     const next = () => {
@@ -141,3 +142,11 @@ module.exports = (archive, target, opts, cb) => {
   return status
 }
 
+function joinHyperPath (base, path) {
+  path = join(base, path)
+  // don't allow '.'
+  if (path === '.') {
+    return ''
+  }
+  return path
+}
