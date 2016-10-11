@@ -25,18 +25,6 @@ module.exports = (archive, target, opts, cb) => {
   const entries = {}
   let watcher
 
-  if (opts.live) {
-    watcher = chokidar.watch([target], {
-      persistent: true,
-      ignored: opts.ignore
-    })
-    watcher.once('ready', () => {
-      watcher.on('add', path => consume(path))
-      watcher.on('change', path => consume(path))
-      watcher.on('unlink', path => noop) // TODO
-    })
-  }
-
   const status = new EventEmitter()
   status.close = () => watcher && watcher.close()
   status.fileCount = 0
@@ -121,7 +109,21 @@ module.exports = (archive, target, opts, cb) => {
   }
 
   const next = () => {
-    consume(target, cb || emitError)
+    consume(target, (err) => {
+      if (err) return cb(err)
+      if (opts.live) {
+        watcher = chokidar.watch([target], {
+          persistent: true,
+          ignored: opts.ignore
+        })
+        watcher.once('ready', () => {
+          watcher.on('add', path => consume(path))
+          watcher.on('change', path => consume(path))
+          watcher.on('unlink', path => noop) // TODO
+        })
+      }
+      cb()
+    })
   }
 
   if (opts.resume) {
