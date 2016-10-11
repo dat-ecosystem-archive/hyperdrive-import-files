@@ -94,18 +94,30 @@ module.exports = (archive, target, opts, cb) => {
 
   const consumeDir = (file, stat, cb) => {
     cb = cb || emitError
-    archive.append({
-      name: relative(target, file),
-      type: 'directory',
-      mtime: stat.mtime
-    }, () => {
+    const hyperPath = relative(target, file)
+    let entry = entries[hyperPath]
+
+    const next = () => {
+      entry = entries[hyperPath] = entry || {}
+      entry.mtime = stat.mtime.getTime()
+
       fs.readdir(file, (err, _files) => {
         if (err) return cb(err)
         series(_files.map(_file => done => {
           consume(join(file, _file), done)
         }), cb)
       })
-    })
+    }
+
+    if (entry && entry.mtime === stat.mtime.getTime()) {
+      next()
+    } else {
+      archive.append({
+        name: hyperPath,
+        type: 'directory',
+        mtime: stat.mtime
+      }, next)
+    }
   }
 
   const next = () => {
@@ -116,8 +128,8 @@ module.exports = (archive, target, opts, cb) => {
     archive.list({ live: false })
     .on('error', cb)
     .on('data', entry => {
-      if (entry.type === 'directory') return
       entries[entry.name] = entry
+      if (entry.type === 'directory') return
       status.fileCount++
       status.totalSize += entry.length
     })
