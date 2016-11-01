@@ -35,7 +35,7 @@ Recursively import `target`, which is the path to a directory or file,  into `ar
 Options
 
 - `live`: keep watching
-- `overwrite`: allow file's in the archive to be overwritten (defaults to true)
+- `overwrite`: allow files in the archive to be overwritten (defaults to true)
 - `resume`: assume the archive isn't fresh
 - `basePath`: where in the archive should the files import to? (defaults to '')
 - `ignore`: [anymatch](https://npmjs.org/package/anymatch) expression to ignore files
