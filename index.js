@@ -69,12 +69,12 @@ module.exports = function (archive, target, opts, cb) {
         name: hyperPath,
         mtime: stat.mtime
       })
+      entry = entries[hyperPath] = entry || {}
+      entry.length = stat.size
+      entry.mtime = stat.mtime.getTime()
 
       pump(rs, ws, function (err) {
         if (err) return cb(err)
-        entry = entries[hyperPath] = entry || {}
-        entry.length = stat.size
-        entry.mtime = stat.mtime.getTime()
         status.emit('file imported', {
           path: file,
           mode: mode
