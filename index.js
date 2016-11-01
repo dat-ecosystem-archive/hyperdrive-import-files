@@ -19,6 +19,7 @@ module.exports = (archive, target, opts, cb) => {
   }
   opts = opts || {}
 
+  const overwrite = opts.overwrite !== false
   const emitError = (err) => err && status.emit('error', err)
   cb = cb || emitError
 
@@ -66,6 +67,7 @@ module.exports = (archive, target, opts, cb) => {
         name: hyperPath,
         mtime: stat.mtime
       })
+
       pump(rs, ws, err => {
         if (err) return cb(err)
         entry = entries[hyperPath] = entry || {}
@@ -78,18 +80,27 @@ module.exports = (archive, target, opts, cb) => {
         cb()
       })
     }
-
     let entry = entries[hyperPath]
-    if (!entry) {
-      status.fileCount++
-      status.totalSize += stat.size
-      next('created')
-    } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
-      status.totalSize = status.totalSize - entry.length + stat.size
-      next('updated')
-    } else {
+
+    if (overwrite) return add()
+    archive.get(hyperPath, function (err, st) {
+      if (err && !st) return add()
       status.emit('file skipped', { path: file })
       cb()
+    })
+
+    function add () {
+      if (!entry) {
+        status.fileCount++
+        status.totalSize += stat.size
+        next('created')
+      } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
+        status.totalSize = status.totalSize - entry.length + stat.size
+        next('updated')
+      } else {
+        status.emit('file skipped', { path: file })
+        cb()
+      }
     }
   }
 
