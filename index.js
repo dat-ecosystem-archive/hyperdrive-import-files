@@ -1,52 +1,54 @@
 'use strict'
 
-const pump = require('pump')
-const fs = require('fs')
-const join = require('path').join
-const relative = require('path').relative
-const basename = require('path').basename
-const EventEmitter = require('events').EventEmitter
-const chokidar = require('chokidar')
-const series = require('run-series')
-const match = require('anymatch')
+var pump = require('pump')
+var fs = require('fs')
+var join = require('path').join
+var relative = require('path').relative
+var basename = require('path').basename
+var EventEmitter = require('events').EventEmitter
+var chokidar = require('chokidar')
+var series = require('run-series')
+var match = require('anymatch')
 
-const noop = () => {}
+var noop = function () {}
 
-module.exports = (archive, target, opts, cb) => {
+module.exports = function (archive, target, opts, cb) {
   if (typeof opts === 'function') {
     cb = opts
     opts = {}
   }
   opts = opts || {}
 
-  const overwrite = opts.overwrite !== false
-  const emitError = (err) => err && status.emit('error', err)
+  var overwrite = opts.overwrite !== false
+  function emitError (err) {
+    if (err) status.emit('error', err)
+  }
   cb = cb || emitError
 
-  const basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
-  const entries = {}
-  let watcher
+  var basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
+  var entries = {}
+  var watcher
 
   if (opts.live) {
     watcher = chokidar.watch([target], {
       persistent: true,
       ignored: opts.ignore
     })
-    watcher.once('ready', () => {
-      watcher.on('add', path => consume(path))
-      watcher.on('change', path => consume(path))
-      watcher.on('unlink', path => noop) // TODO
+    watcher.once('ready', function () {
+      watcher.on('add', consume)
+      watcher.on('change', consume)
+      watcher.on('unlink', noop) // TODO
     })
   }
 
-  const status = new EventEmitter()
-  status.close = () => watcher && watcher.close()
+  var status = new EventEmitter()
+  status.close = function () { watcher && watcher.close() }
   status.fileCount = 0
   status.totalSize = 0
 
-  const consume = (file, cb) => {
+  function consume (file, cb) {
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    fs.stat(file, (err, stat) => {
+    fs.stat(file, function (err, stat) {
       if (err) return cb(err)
       if (stat.isDirectory()) {
         consumeDir(file, stat, cb)
@@ -56,31 +58,31 @@ module.exports = (archive, target, opts, cb) => {
     })
   }
 
-  const consumeFile = (file, stat, cb) => {
+  function consumeFile (file, stat, cb) {
     cb = cb || emitError
-    const hyperPath = file === target
+    var hyperPath = file === target
       ? joinHyperPath(basePath, basename(file))
       : joinHyperPath(basePath, relative(target, file))
-    const next = mode => {
-      const rs = fs.createReadStream(file)
-      const ws = archive.createFileWriteStream({
+    function next (mode) {
+      var rs = fs.createReadStream(file)
+      var ws = archive.createFileWriteStream({
         name: hyperPath,
         mtime: stat.mtime
       })
 
-      pump(rs, ws, err => {
+      pump(rs, ws, function (err) {
         if (err) return cb(err)
         entry = entries[hyperPath] = entry || {}
         entry.length = stat.size
         entry.mtime = stat.mtime.getTime()
         status.emit('file imported', {
           path: file,
-          mode
+          mode: mode
         })
         cb()
       })
     }
-    let entry = entries[hyperPath]
+    var entry = entries[hyperPath]
 
     if (overwrite) return add()
     archive.get(hyperPath, function (err, st) {
@@ -104,19 +106,21 @@ module.exports = (archive, target, opts, cb) => {
     }
   }
 
-  const consumeDir = (file, stat, cb) => {
+  function consumeDir (file, stat, cb) {
     cb = cb || emitError
-    const hyperPath = joinHyperPath(basePath, relative(target, file))
-    let entry = entries[hyperPath]
+    var hyperPath = joinHyperPath(basePath, relative(target, file))
+    var entry = entries[hyperPath]
 
-    const next = () => {
+    function next () {
       entry = entries[hyperPath] = entry || {}
       entry.mtime = stat.mtime.getTime()
 
-      fs.readdir(file, (err, _files) => {
+      fs.readdir(file, function (err, _files) {
         if (err) return cb(err)
-        series(_files.map(_file => done => {
-          consume(join(file, _file), done)
+        series(_files.map(function (_file) {
+          return function (done) {
+            consume(join(file, _file), done)
+          }
         }), cb)
       })
     }
@@ -132,14 +136,14 @@ module.exports = (archive, target, opts, cb) => {
     }
   }
 
-  const next = () => {
+  function next () {
     consume(target, cb || emitError)
   }
 
   if (opts.resume) {
     archive.list({ live: false })
     .on('error', cb)
-    .on('data', entry => {
+    .on('data', function (entry) {
       entries[entry.name] = entry
       if (entry.type === 'directory') return
       status.fileCount++

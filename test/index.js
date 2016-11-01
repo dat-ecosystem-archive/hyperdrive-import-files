@@ -1,32 +1,40 @@
 'use strict'
 
-const test = require('tape')
-const hyperdrive = require('hyperdrive')
-const memdb = require('memdb')
-const hyperImport = require('..')
-const fs = require('fs')
-const path = require('path')
-const raf = require('random-access-file')
+var test = require('tape')
+var hyperdrive = require('hyperdrive')
+var memdb = require('memdb')
+var hyperImport = require('..')
+var fs = require('fs')
+var path = require('path')
+var raf = require('random-access-file')
 
-const sort = entries => entries.sort((a, b) => a.name.localeCompare(b.name))
+function sort (entries) {
+  return entries.sort(function (a, b) {
+    return a.name.localeCompare(b.name)
+  })
+}
 
-test('cleanup', t => {
-  const base = `${__dirname}/fixture/a/b/c`
+test('cleanup', function (t) {
+  var base = path.join(__dirname, '/fixture/a/b/c')
   fs.readdirSync(base)
-  .filter(file => ['d.txt', 'e.txt'].indexOf(file) === -1)
-  .forEach(file => fs.unlinkSync(`${base}/${file}`))
+  .filter(function (file) {
+    return ['d.txt', 'e.txt'].indexOf(file) === -1
+  })
+  .forEach(function (file) {
+    fs.unlinkSync(path.join(base, file))
+  })
   t.end()
 })
 
-test('import directory', t => {
+test('import directory', function (t) {
   t.plan(8)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, err => {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), function (err) {
     t.error(err)
 
-    archive.list((err, entries) => {
+    archive.list(function (err, entries) {
       t.error(err)
       entries = sort(entries)
       t.equal(entries.length, 3)
@@ -39,15 +47,15 @@ test('import directory', t => {
   })
 })
 
-test('import file', t => {
+test('import file', function (t) {
   t.plan(6)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/d.txt`, err => {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/d.txt'), function (err) {
     t.error(err)
 
-    archive.list((err, entries) => {
+    archive.list(function (err, entries) {
       t.error(err)
       entries = sort(entries)
       t.equal(entries.length, 1)
@@ -58,34 +66,34 @@ test('import file', t => {
   })
 })
 
-test('resume', t => {
+test('resume', function (t) {
   t.plan(12)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  let status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
     resume: true
-  }, err => {
+  }, function (err) {
     t.error(err)
-    archive.createFileWriteStream('d.txt').on('finish', () => {
-      status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
+    archive.createFileWriteStream('d.txt').on('finish', function () {
+      status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
         resume: true
-      }, err => {
+      }, function (err) {
         t.error(err)
       })
-      status.on('file imported', file => {
+      status.on('file imported', function (file) {
         t.equal(file.mode, 'updated', 'updated')
         t.equal(status.fileCount, 3)
         t.equal(status.totalSize, 13)
       })
-      status.on('file skipped', file => {
-        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
+      status.on('file skipped', function (file) {
+        t.equal(file.path, path.join(__dirname, '/fixture/a/b/c/e.txt'))
       })
     }).end('bleerg')
   })
 
-  let i = 0
-  status.on('file imported', file => {
+  var i = 0
+  status.on('file imported', function (file) {
     t.equal(file.mode, 'created', 'created')
     if (!i++) {
       t.equal(status.fileCount, 1)
@@ -97,40 +105,40 @@ test('resume', t => {
   })
 })
 
-test('resume with raf', t => {
+test('resume with raf', function (t) {
   t.plan(12)
 
-  const drive = hyperdrive(memdb())
-  const dir = `${__dirname}/fixture/a/b/c/`
-  const archive = drive.createArchive({
+  var drive = hyperdrive(memdb())
+  var dir = path.join(__dirname, '/fixture/a/b/c/')
+  var archive = drive.createArchive({
     file: function (name) {
       return raf(path.join(dir, name))
     }
   })
-  let status = hyperImport(archive, dir, {
+  var status = hyperImport(archive, dir, {
     resume: true
-  }, err => {
+  }, function (err) {
     t.error(err)
-    fs.writeFile(`${__dirname}/fixture/a/b/c/d.txt`, 'foo\n', () => {
+    fs.writeFile(path.join(__dirname, '/fixture/a/b/c/d.txt'), 'foo\n', function () {
       status = hyperImport(archive, dir, {
         resume: true
-      }, err => {
+      }, function (err) {
         t.error(err)
       })
-      status.on('file imported', file => {
-        if (file.path !== `${__dirname}/fixture/a/b/c/d.txt`) t.fail('wrong file')
+      status.on('file imported', function (file) {
+        if (file.path !== path.join(__dirname, '/fixture/a/b/c/d.txt')) t.fail('wrong file')
         t.equal(file.mode, 'updated', 'updated')
         t.equal(status.fileCount, 2)
         t.equal(status.totalSize, 9)
       })
-      status.on('file skipped', file => {
-        t.equal(file.path, `${__dirname}/fixture/a/b/c/e.txt`)
+      status.on('file skipped', function (file) {
+        t.equal(file.path, path.join(__dirname, '/fixture/a/b/c/e.txt'))
       })
     })
   })
 
-  let i = 0
-  status.on('file imported', file => {
+  var i = 0
+  status.on('file imported', function (file) {
     t.equal(file.mode, 'created', 'created')
     if (!i++) {
       t.equal(status.fileCount, 1)
@@ -143,76 +151,76 @@ test('resume with raf', t => {
 })
 
 if (!process.env.TRAVIS) {
-  test('resume & live', t => {
+  test('resume & live', function (t) {
     t.plan(10)
 
-    const drive = hyperdrive(memdb())
-    const archive = drive.createArchive()
-    let status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, {
+    var drive = hyperdrive(memdb())
+    var archive = drive.createArchive()
+    var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
       resume: true,
       live: true
-    }, err => {
+    }, function (err) {
       t.error(err, 'initial import')
-      const tmp = `${__dirname}/fixture/a/b/c/${Math.random().toString(16).slice(2)}`
+      var tmp = path.join(__dirname, '/fixture/a/b/c/', Math.random().toString(16).slice(2))
 
-      status.once('file imported', file => {
+      status.once('file imported', function (file) {
         t.equal(file.mode, 'created', 'created')
         t.equal(status.fileCount, 3, 'file count')
         t.equal(status.totalSize, 11, 'total size')
 
-        status.once('file imported', file => {
+        status.once('file imported', function (file) {
           t.equal(file.mode, 'updated', 'updated')
           t.equal(status.fileCount, 3, 'file count')
           t.equal(status.totalSize, 12, 'total size')
           status.close()
-          fs.unlink(tmp, err => t.error(err, 'file removed'))
+          fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
         })
 
-        fs.writeFile(tmp, 'you', err => t.error(err, 'file updated'))
+        fs.writeFile(tmp, 'you', function (err) { t.error(err, 'file updated') })
       })
-      fs.writeFile(tmp, 'yo', err => t.error(err, 'file created'))
+      fs.writeFile(tmp, 'yo', function (err) { t.error(err, 'file created') })
     })
   })
 }
 
-test('optional callback', t => {
+test('optional callback', function (t) {
   t.plan(1)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  let status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`)
-  status.once('file imported', () => t.ok(true))
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'))
+  status.once('file imported', function () { t.ok(true) })
 })
 
-test('ignore', t => {
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const status = hyperImport(archive, `${__dirname}/fixture/ignore`, {
+test('ignore', function (t) {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/ignore'), {
     ignore: /\/\.dat\//,
     live: true
-  }, err => {
+  }, function (err) {
     t.error(err, 'no error importing')
-    fs.writeFile(`${__dirname}/fixture/ignore/.dat/beep.txt`, 'boop', err => {
+    fs.writeFile(path.join(__dirname, '/fixture/ignore/.dat/beep.txt'), 'boop', function (err) {
       t.error(err, 'no error writing file')
       t.end()
       status.close()
     })
   })
-  status.on('file imported', () => t.ok(false))
+  status.on('file imported', function () { t.ok(false) })
 })
 
-test('duplicate directory', t => {
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const directory = `${__dirname}/fixture/a/b/c/`
+test('duplicate directory', function (t) {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var directory = path.join(__dirname, '/fixture/a/b/c/')
 
-  hyperImport(archive, directory, err => {
+  hyperImport(archive, directory, function (err) {
     t.error(err)
     hyperImport(archive, directory, {
       resume: true
-    }, err => {
+    }, function (err) {
       t.error(err)
-      archive.list((err, entries) => {
+      archive.list(function (err, entries) {
         t.error(err)
 
         entries = sort(entries)
@@ -226,15 +234,15 @@ test('duplicate directory', t => {
   })
 })
 
-test('import directory with basePath', t => {
+test('import directory with basePath', function (t) {
   t.plan(8)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/`, { basePath: 'foo/bar' }, err => {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), { basePath: 'foo/bar' }, function (err) {
     t.error(err)
 
-    archive.list((err, entries) => {
+    archive.list(function (err, entries) {
       t.error(err)
       entries = sort(entries)
       t.equal(entries.length, 3)
@@ -247,15 +255,15 @@ test('import directory with basePath', t => {
   })
 })
 
-test('import file with basePath', t => {
+test('import file with basePath', function (t) {
   t.plan(6)
 
-  const drive = hyperdrive(memdb())
-  const archive = drive.createArchive()
-  const status = hyperImport(archive, `${__dirname}/fixture/a/b/c/d.txt`, { basePath: 'foo/bar' }, err => {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/d.txt'), { basePath: 'foo/bar' }, function (err) {
     t.error(err)
 
-    archive.list((err, entries) => {
+    archive.list(function (err, entries) {
       t.error(err)
       entries = sort(entries)
       t.equal(entries.length, 1)
@@ -267,7 +275,7 @@ test('import file with basePath', t => {
 })
 
 // NOTE: this test must be last
-test('chokidar bug', t => {
+test('chokidar bug', function (t) {
   // chokidar sometimes keeps the process open
   t.end()
   process.exit()

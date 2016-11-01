@@ -1,11 +1,11 @@
-const hyperdrive = require('hyperdrive')
-const memdb = require('memdb')
-const hyperImport = require('.')
+var hyperdrive = require('hyperdrive')
+var memdb = require('memdb')
+var hyperImport = require('.')
 
-const drive = hyperdrive(memdb())
-const archive = drive.createArchive()
+var drive = hyperdrive(memdb())
+var archive = drive.createArchive()
 
-const status = hyperImport(archive, process.argv.slice(2), { live: true }, err => {
+var status = hyperImport(archive, process.argv.slice(2), { live: true }, function (err) {
   if (err) throw err
   console.log('done')
   console.log('file count', status.fileCount)
