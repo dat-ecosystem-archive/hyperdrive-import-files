@@ -125,13 +125,12 @@ module.exports = function (archive, target, opts, cb) {
       })
     }
 
-    if (entry && entry.mtime === stat.mtime.getTime()) {
+    if (entry) {
       next()
     } else {
       archive.append({
         name: hyperPath,
-        type: 'directory',
-        mtime: stat.mtime
+        type: 'directory'
       }, next)
     }
   }

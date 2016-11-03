@@ -234,6 +234,35 @@ test('duplicate directory', function (t) {
   })
 })
 
+test('duplicate subdirectory', function (t) {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var directory = path.join(__dirname, '/fixture/a/b/')
+
+  hyperImport(archive, directory, function (err) {
+    t.error(err)
+    fs.utimes(path.join(directory, 'c'), NaN, NaN, function () {
+      hyperImport(archive, directory, {
+        resume: true
+      }, function (err) {
+        t.error(err)
+        archive.list(function (err, entries) {
+          t.error(err)
+
+          entries = sort(entries)
+          console.log(entries)
+          t.equal(entries.length, 4)
+          t.equal(entries[0].name, '')
+          t.equal(entries[1].name, 'c')
+          t.equal(entries[2].name, 'c/d.txt')
+          t.equal(entries[3].name, 'c/e.txt')
+          t.end()
+        })
+      })
+    })
+  })
+})
+
 test('import directory with basePath', function (t) {
   t.plan(8)
 
