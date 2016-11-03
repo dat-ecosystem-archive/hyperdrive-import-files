@@ -36,10 +36,10 @@ module.exports = function (archive, target, opts, cb) {
     })
     watcher.once('ready', function () {
       watcher.on('add', function (file, stat) {
-        consume(file, noop)
+        consume(file)
       })
       watcher.on('change', function (file, stat) {
-        consume(file, noop)
+        consume(file)
       })
       watcher.on('unlink', noop) // TODO
     })
