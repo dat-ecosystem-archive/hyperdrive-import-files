@@ -35,8 +35,12 @@ module.exports = function (archive, target, opts, cb) {
       ignored: opts.ignore
     })
     watcher.once('ready', function () {
-      watcher.on('add', consume)
-      watcher.on('change', consume)
+      watcher.on('add', function (file, stat) {
+        consume(file, stat)
+      })
+      watcher.on('change', function (file, stat) {
+        consume(file, stat)
+      })
       watcher.on('unlink', noop) // TODO
     })
   }
@@ -46,16 +50,25 @@ module.exports = function (archive, target, opts, cb) {
   status.fileCount = 0
   status.totalSize = 0
 
-  function consume (file, cb) {
+  function consume (file, stat, cb) {
+    cb = cb || emitError
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    fs.stat(file, function (err, stat) {
-      if (err) return cb(err)
+    if (stat) {
+      onstat(stat)
+    } else {
+      fs.stat(file, function (err, stat) {
+        if (err) return cb(err)
+        onstat(stat)
+      })
+    }
+
+    function onstat (stat) {
       if (stat.isDirectory()) {
         consumeDir(file, stat, cb)
       } else {
         consumeFile(file, stat, cb)
       }
-    })
+    }
   }
 
   function consumeFile (file, stat, cb) {
@@ -119,7 +132,7 @@ module.exports = function (archive, target, opts, cb) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
           return function (done) {
-            consume(join(file, _file), done)
+            consume(join(file, _file), null, done)
           }
         }), cb)
       })
@@ -137,7 +150,7 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   function next () {
-    consume(target, cb || emitError)
+    consume(target, null, cb)
   }
 
   if (opts.resume) {
