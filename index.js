@@ -10,6 +10,7 @@ var chokidar = require('chokidar')
 var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
+var isDuplicate = require('hyperdrive-duplicate')
 
 var noop = function () {}
 
@@ -124,10 +125,17 @@ module.exports = function (archive, target, opts, cb) {
         status.totalSize += stat.size
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
-        status.totalSize = status.totalSize - entry.length + stat.size
-        if (watch) status.bytesImported -= entry.length
-        next('updated')
+        isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+          if (!err && duplicate) return skip()
+          status.totalSize = status.totalSize - entry.length + stat.size
+          if (watch) status.bytesImported -= entry.length
+          next('updated')
+        })
       } else {
+        skip()
+      }
+
+      function skip () {
         status.bytesImported += stat.size
         status.emit('file skipped', { path: file })
         cb()
