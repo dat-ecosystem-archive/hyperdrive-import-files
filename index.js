@@ -9,6 +9,7 @@ var EventEmitter = require('events').EventEmitter
 var chokidar = require('chokidar')
 var series = require('run-series')
 var match = require('anymatch')
+var isDuplicate = require('hyperdrive-duplicate')
 
 var noop = function () {}
 
@@ -111,8 +112,15 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
-        next('updated')
+        isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+          if (!err && duplicate) return skip()
+          next('updated')
+        })
       } else {
+        skip()
+      }
+
+      function skip () {
         status.emit('file skipped', { path: file })
         cb()
       }
