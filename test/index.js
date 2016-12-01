@@ -274,6 +274,27 @@ test('import file with basePath', function (t) {
   })
 })
 
+test('dry run', function (t) {
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var filesAdded = []
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), { dryRun: true }, function (err) {
+    t.error(err)
+
+    archive.list(function (err, entries) {
+      t.error(err)
+      t.equal(entries.length, 0)
+      t.equal(filesAdded.length, 2)
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+      t.end()
+    })
+  })
+  status.on('file imported', function (e) {
+    filesAdded.push(e)
+  })
+})
+
 // NOTE: this test must be last
 test('chokidar bug', function (t) {
   // chokidar sometimes keeps the process open

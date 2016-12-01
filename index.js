@@ -20,6 +20,7 @@ module.exports = function (archive, target, opts, cb) {
   opts = opts || {}
 
   var overwrite = opts.overwrite !== false
+  var dryRun = opts.dryRun === true
   function emitError (err) {
     if (err) status.emit('error', err)
   }
@@ -77,6 +78,9 @@ module.exports = function (archive, target, opts, cb) {
       ? joinHyperPath(basePath, basename(file))
       : joinHyperPath(basePath, relative(target, file))
     function next (mode) {
+      if (dryRun) {
+        return pumpDone()
+      }
       var rs = fs.createReadStream(file)
       var ws = archive.createFileWriteStream({
         name: hyperPath,
@@ -86,14 +90,15 @@ module.exports = function (archive, target, opts, cb) {
       entry.length = stat.size
       entry.mtime = stat.mtime.getTime()
 
-      pump(rs, ws, function (err) {
+      pump(rs, ws, pumpDone)
+      function pumpDone (err) {
         if (err) return cb(err)
         status.emit('file imported', {
           path: file,
           mode: mode
         })
         cb()
-      })
+      }
     }
     var entry = entries[hyperPath]
 
@@ -138,7 +143,7 @@ module.exports = function (archive, target, opts, cb) {
       })
     }
 
-    if (entry && entry.mtime === stat.mtime.getTime()) {
+    if (dryRun || (entry && entry.mtime === stat.mtime.getTime())) {
       next()
     } else {
       archive.append({
