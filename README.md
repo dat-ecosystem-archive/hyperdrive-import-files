@@ -40,6 +40,7 @@ Options
 - `basePath`: where in the archive should the files import to? (defaults to '')
 - `ignore`: [anymatch](https://npmjs.org/package/anymatch) expression to ignore files
 - `dryRun`: step through the import, but don't write any files to the archive (defaults to false)
+- `indexing`: Useful if `target === dest` so hyperdrive does not rewrite the files on import.
 
 To enable watching, set `live: true`, like this:
 
