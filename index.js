@@ -9,6 +9,7 @@ var EventEmitter = require('events').EventEmitter
 var chokidar = require('chokidar')
 var series = require('run-series')
 var match = require('anymatch')
+var through = require('through2')
 
 var noop = function () {}
 
@@ -50,6 +51,7 @@ module.exports = function (archive, target, opts, cb) {
   status.close = function () { watcher && watcher.close() }
   status.fileCount = 0
   status.totalSize = 0
+  status.bytesImported = 0
 
   function consume (file, stat, cb) {
     cb = cb || emitError
@@ -89,8 +91,12 @@ module.exports = function (archive, target, opts, cb) {
       entry = entries[hyperPath] = entry || {}
       entry.length = stat.size
       entry.mtime = stat.mtime.getTime()
+      var increment = through(function (chunk, enc, cb) {
+        status.bytesImported += chunk.length
+        cb(null, chunk)
+      })
 
-      pump(rs, ws, pumpDone)
+      pump(rs, increment, ws, pumpDone)
       function pumpDone (err) {
         if (err) return cb(err)
         status.emit('file imported', {
@@ -116,8 +122,10 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
+        if (opts.live) status.bytesImported -= entry.length
         next('updated')
       } else {
+        status.bytesImported += stat.size
         status.emit('file skipped', { path: file })
         cb()
       }
