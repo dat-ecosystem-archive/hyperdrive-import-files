@@ -84,7 +84,7 @@ test('resume', function (t) {
         t.error(err)
         t.equal(status.fileCount, 3)
         t.equal(status.totalSize, 13)
-        t.equal(status.bytesImported, 13)
+        t.equal(status.bytesImported, 9)
       })
       status.on('file imported', function (file) {
         t.equal(file.mode, 'updated', 'updated')
