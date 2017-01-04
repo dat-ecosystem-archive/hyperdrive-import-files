@@ -75,6 +75,7 @@ Properties:
 
 - `fileCount`: The count of currently known files
 - `totalSize`: Total file size in bytes
+- `bytesImported`: Amount of bytes imported so far
 
 ## License
 
