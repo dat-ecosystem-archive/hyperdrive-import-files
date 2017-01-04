@@ -27,7 +27,7 @@ test('cleanup', function (t) {
 })
 
 test('import directory', function (t) {
-  t.plan(8)
+  t.plan(9)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -43,12 +43,13 @@ test('import directory', function (t) {
       t.equal(entries[2].name, 'e.txt')
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
     })
   })
 })
 
 test('import file', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -62,12 +63,13 @@ test('import file', function (t) {
       t.equal(entries[0].name, 'd.txt')
       t.equal(status.fileCount, 1)
       t.equal(status.totalSize, 4)
+      t.equal(status.bytesImported, 4)
     })
   })
 })
 
 test('resume', function (t) {
-  t.plan(12)
+  t.plan(15)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -80,11 +82,12 @@ test('resume', function (t) {
         resume: true
       }, function (err) {
         t.error(err)
+        t.equal(status.fileCount, 3)
+        t.equal(status.totalSize, 13)
+        t.equal(status.bytesImported, 9)
       })
       status.on('file imported', function (file) {
         t.equal(file.mode, 'updated', 'updated')
-        t.equal(status.fileCount, 3)
-        t.equal(status.totalSize, 13)
       })
       status.on('file skipped', function (file) {
         t.equal(file.path, path.join(__dirname, '/fixture/a/b/c/e.txt'))
@@ -98,15 +101,17 @@ test('resume', function (t) {
     if (!i++) {
       t.equal(status.fileCount, 1)
       t.equal(status.totalSize, 4)
+      t.equal(status.bytesImported, 4)
     } else {
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
     }
   })
 })
 
 test('resume with raf', function (t) {
-  t.plan(12)
+  t.plan(15)
 
   var drive = hyperdrive(memdb())
   var dir = path.join(__dirname, '/fixture/a/b/c/')
@@ -124,12 +129,13 @@ test('resume with raf', function (t) {
         resume: true
       }, function (err) {
         t.error(err)
+        t.equal(status.fileCount, 2)
+        t.equal(status.totalSize, 9)
+        t.equal(status.bytesImported, 9)
       })
       status.on('file imported', function (file) {
         if (file.path !== path.join(__dirname, '/fixture/a/b/c/d.txt')) t.fail('wrong file')
         t.equal(file.mode, 'updated', 'updated')
-        t.equal(status.fileCount, 2)
-        t.equal(status.totalSize, 9)
       })
       status.on('file skipped', function (file) {
         t.equal(file.path, path.join(__dirname, '/fixture/a/b/c/e.txt'))
@@ -143,16 +149,18 @@ test('resume with raf', function (t) {
     if (!i++) {
       t.equal(status.fileCount, 1)
       t.equal(status.totalSize, 4)
+      t.equal(status.bytesImported, 4)
     } else {
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
     }
   })
 })
 
 if (!process.env.TRAVIS) {
   test('resume & live', function (t) {
-    t.plan(10)
+    t.plan(12)
 
     var drive = hyperdrive(memdb())
     var archive = drive.createArchive()
@@ -167,11 +175,13 @@ if (!process.env.TRAVIS) {
         t.equal(file.mode, 'created', 'created')
         t.equal(status.fileCount, 3, 'file count')
         t.equal(status.totalSize, 11, 'total size')
+        t.equal(status.bytesImported, 11, 'bytes imported')
 
         status.once('file imported', function (file) {
           t.equal(file.mode, 'updated', 'updated')
           t.equal(status.fileCount, 3, 'file count')
           t.equal(status.totalSize, 12, 'total size')
+          t.equal(status.bytesImported, 12, 'bytes imported')
           status.close()
           fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
         })
@@ -235,7 +245,7 @@ test('duplicate directory', function (t) {
 })
 
 test('import directory with basePath', function (t) {
-  t.plan(8)
+  t.plan(9)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -251,12 +261,13 @@ test('import directory with basePath', function (t) {
       t.equal(entries[2].name, 'foo/bar/e.txt')
       t.equal(status.fileCount, 2)
       t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
     })
   })
 })
 
 test('import file with basePath', function (t) {
-  t.plan(6)
+  t.plan(7)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -270,6 +281,7 @@ test('import file with basePath', function (t) {
       t.equal(entries[0].name, 'foo/bar/d.txt')
       t.equal(status.fileCount, 1)
       t.equal(status.totalSize, 4)
+      t.equal(status.bytesImported, 4)
     })
   })
 })
