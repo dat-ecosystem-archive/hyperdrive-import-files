@@ -34,7 +34,7 @@ Recursively import `target`, which is the path to a directory or file,  into `ar
 
 Options
 
-- `live`: keep watching
+- `watch`: watch files for changes & import on change (archive must be live)
 - `overwrite`: allow files in the archive to be overwritten (defaults to true)
 - `resume`: assume the archive isn't fresh
 - `basePath`: where in the archive should the files import to? (defaults to '')
@@ -42,10 +42,10 @@ Options
 - `dryRun`: step through the import, but don't write any files to the archive (defaults to false)
 - `indexing`: Useful if `target === dest` so hyperdrive does not rewrite the files on import.
 
-To enable watching, set `live: true`, like this:
+To enable watching, set `watch: true`, like this:
 
 ```js
-const status = hyperImport(archive, target, { live: true }, err => {
+const status = hyperImport(archive, target, { watch: true }, err => {
   console.log('initial import done')
 })
 status.on('error', err => {
@@ -70,6 +70,7 @@ Events:
 - `error` (`err`)
 - `file imported` ({ `path`, `mode=updated|created` })
 - `file skipped` ({ `path` })
+- `file watched` ({ `path`, `mode=updated|created` })
 
 Properties:
 
