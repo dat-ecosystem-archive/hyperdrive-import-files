@@ -39,11 +39,11 @@ module.exports = function (archive, target, opts, cb) {
     })
     watcher.once('ready', function () {
       watcher.on('add', function (file, stat) {
-        status.emit('file watched', {path: file, mode: 'add'})
+        status.emit('file watched', {path: file, mode: 'created'})
         consume(file, stat)
       })
       watcher.on('change', function (file, stat) {
-        status.emit('file watched', {path: file, mode: 'change'})
+        status.emit('file watched', {path: file, mode: 'updated'})
         consume(file, stat)
       })
       watcher.on('unlink', noop) // TODO
