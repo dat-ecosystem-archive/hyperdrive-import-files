@@ -19,6 +19,7 @@ module.exports = function (archive, target, opts, cb) {
     opts = {}
   }
   opts = opts || {}
+  opts.watch = opts.watch || opts.live
 
   var overwrite = opts.overwrite !== false
   var dryRun = opts.dryRun === true
@@ -31,7 +32,7 @@ module.exports = function (archive, target, opts, cb) {
   var entries = {}
   var watcher
 
-  if (opts.live) {
+  if (opts.watch && archive.live) {
     watcher = chokidar.watch([target], {
       persistent: true,
       ignored: opts.ignore
@@ -123,7 +124,7 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
-        if (opts.live) status.bytesImported -= entry.length
+        if (opts.watch) status.bytesImported -= entry.length
         next('updated')
       } else {
         status.bytesImported += stat.size
