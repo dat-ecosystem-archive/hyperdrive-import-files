@@ -86,9 +86,8 @@ module.exports = function (archive, target, opts, cb) {
       var rs = fs.createReadStream(file)
       var ws = archive.createFileWriteStream({
         name: hyperPath,
-        mtime: stat.mtime,
-        indexing: opts.indexing
-      })
+        mtime: stat.mtime
+      }, {indexing: opts.indexing})
       entry = entries[hyperPath] = entry || {}
       entry.length = stat.size
       entry.mtime = stat.mtime.getTime()
