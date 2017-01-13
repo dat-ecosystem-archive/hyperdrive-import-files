@@ -70,7 +70,7 @@ Events:
 - `error` (`err`)
 - `file imported` ({ `path`, `mode=updated|created` })
 - `file skipped` ({ `path` })
-- `file watched` ({ `path`, `mode=updated|created` })
+- `file watch event` ({ `path`, `mode=updated|created` })
 
 Properties:
 

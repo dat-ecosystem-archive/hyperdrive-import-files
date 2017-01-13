@@ -177,7 +177,7 @@ if (!process.env.TRAVIS) {
         t.equal(status.totalSize, 11, 'total size')
         t.equal(status.bytesImported, 11, 'bytes imported')
 
-        status.once('file watched', function (file) {
+        status.once('file watch event', function (file) {
           t.equal(file.mode, 'updated', 'updated')
         })
 
