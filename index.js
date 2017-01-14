@@ -19,6 +19,7 @@ module.exports = function (archive, target, opts, cb) {
     opts = {}
   }
   opts = opts || {}
+  var watch = opts.watch || opts.live
 
   var overwrite = opts.overwrite !== false
   var dryRun = opts.dryRun === true
@@ -31,16 +32,18 @@ module.exports = function (archive, target, opts, cb) {
   var entries = {}
   var watcher
 
-  if (opts.live) {
+  if (watch && archive.live) {
     watcher = chokidar.watch([target], {
       persistent: true,
       ignored: opts.ignore
     })
     watcher.once('ready', function () {
       watcher.on('add', function (file, stat) {
+        status.emit('file watch event', {path: file, mode: 'created'})
         consume(file, stat)
       })
       watcher.on('change', function (file, stat) {
+        status.emit('file watch event', {path: file, mode: 'updated'})
         consume(file, stat)
       })
       watcher.on('unlink', noop) // TODO
@@ -122,7 +125,7 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
-        if (opts.live) status.bytesImported -= entry.length
+        if (watch) status.bytesImported -= entry.length
         next('updated')
       } else {
         status.bytesImported += stat.size

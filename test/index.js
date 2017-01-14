@@ -160,7 +160,7 @@ test('resume with raf', function (t) {
 
 if (!process.env.TRAVIS) {
   test('resume & live', function (t) {
-    t.plan(12)
+    t.plan(13)
 
     var drive = hyperdrive(memdb())
     var archive = drive.createArchive()
@@ -176,6 +176,10 @@ if (!process.env.TRAVIS) {
         t.equal(status.fileCount, 3, 'file count')
         t.equal(status.totalSize, 11, 'total size')
         t.equal(status.bytesImported, 11, 'bytes imported')
+
+        status.once('file watch event', function (file) {
+          t.equal(file.mode, 'updated', 'updated')
+        })
 
         status.once('file imported', function (file) {
           t.equal(file.mode, 'updated', 'updated')
