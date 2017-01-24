@@ -6,12 +6,10 @@ var join = require('path').join
 var relative = require('path').relative
 var basename = require('path').basename
 var EventEmitter = require('events').EventEmitter
-var chokidar = require('chokidar')
+var recursiveWatch = require('recursive-watch')
 var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
-
-var noop = function () {}
 
 module.exports = function (archive, target, opts, cb) {
   if (typeof opts === 'function') {
@@ -33,25 +31,11 @@ module.exports = function (archive, target, opts, cb) {
   var watcher
 
   if (watch && archive.live) {
-    watcher = chokidar.watch([target], {
-      persistent: true,
-      ignored: opts.ignore
-    })
-    watcher.once('ready', function () {
-      watcher.on('add', function (file, stat) {
-        status.emit('file watch event', {path: file, mode: 'created'})
-        consume(file, stat)
-      })
-      watcher.on('change', function (file, stat) {
-        status.emit('file watch event', {path: file, mode: 'updated'})
-        consume(file, stat)
-      })
-      watcher.on('unlink', noop) // TODO
-    })
+    watcher = recursiveWatch(target, consume)
   }
 
   var status = new EventEmitter()
-  status.close = function () { watcher && watcher.close() }
+  status.close = function () { watcher && watcher() }
   status.fileCount = 0
   status.totalSize = 0
   status.bytesImported = 0
