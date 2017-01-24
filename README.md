@@ -68,9 +68,9 @@ hyperImport(archive, target, { basePath: '/some/subdir' }, err => {...})
 Events:
 
 - `error` (`err`)
-- `file imported` ({ `path`, `mode=updated|created` })
+- `file imported` ({ `path`, `mode=updated` })
 - `file skipped` ({ `path` })
-- `file watch event` ({ `path`, `mode=updated|created` })
+- `file watch event` ({ `path`, `mode=updated` })
 
 Properties:
 

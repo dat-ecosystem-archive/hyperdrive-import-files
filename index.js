@@ -40,17 +40,14 @@ module.exports = function (archive, target, opts, cb) {
   status.totalSize = 0
   status.bytesImported = 0
 
-  function consume (file, stat, cb) {
+  function consume (file, cb) {
     cb = cb || emitError
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    if (stat) {
+    status.emit('file watch event', {path: file, mode: 'updated'})
+    fs.stat(file, function (err, stat) {
+      if (err) return cb(err)
       onstat(stat)
-    } else {
-      fs.stat(file, function (err, stat) {
-        if (err) return cb(err)
-        onstat(stat)
-      })
-    }
+    })
 
     function onstat (stat) {
       if (stat.isDirectory()) {
@@ -132,7 +129,7 @@ module.exports = function (archive, target, opts, cb) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
           return function (done) {
-            consume(join(file, _file), null, done)
+            consume(join(file, _file), done)
           }
         }), cb)
       })
@@ -150,7 +147,7 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   function next () {
-    consume(target, null, cb)
+    consume(target, cb)
   }
 
   if (opts.resume) {
