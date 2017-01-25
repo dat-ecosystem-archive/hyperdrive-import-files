@@ -154,13 +154,12 @@ module.exports = function (archive, target, opts, cb) {
       })
     }
 
-    if (dryRun || (entry && entry.mtime === stat.mtime.getTime())) {
+    if (dryRun || entry) {
       next()
     } else {
       archive.append({
         name: hyperPath,
-        type: 'directory',
-        mtime: stat.mtime
+        type: 'directory'
       }, next)
     }
   }
