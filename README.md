@@ -70,13 +70,13 @@ Events:
 - `error` (`err`)
 - `file imported` ({ `path`, `mode=updated|created` })
 - `file skipped` ({ `path` })
-- `file watch event` ({ `path`, `mode=updated|created` })
+- `file watch event` ({ `path` })
 
 Properties:
 
 - `fileCount`: The count of currently known files
 - `totalSize`: Total file size in bytes
-- `bytesImported`: Amount of bytes imported so far
+- `bytesImported`: Amount of bytes imported so far. This may not be the same as `totalSize` if a file was updated or skipped.
 
 ## License
 

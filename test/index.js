@@ -158,44 +158,43 @@ test('resume with raf', function (t) {
   })
 })
 
-if (!process.env.TRAVIS) {
-  test('resume & live', function (t) {
-    t.plan(13)
+test('resume & live', function (t) {
+  t.plan(14)
 
-    var drive = hyperdrive(memdb())
-    var archive = drive.createArchive()
-    var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
-      resume: true,
-      live: true
-    }, function (err) {
-      t.error(err, 'initial import')
-      var tmp = path.join(__dirname, '/fixture/a/b/c/', Math.random().toString(16).slice(2))
+  var drive = hyperdrive(memdb())
+  var archive = drive.createArchive()
+  var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
+    resume: true,
+    live: true
+  }, function (err) {
+    t.error(err, 'initial import')
+    var tmp = path.join(__dirname, '/fixture/a/b/c/', Math.random().toString(16).slice(2))
+
+    status.on('file watch event', function (file) {
+      // Should fire twice, once for create and once for update
+      t.equal(file.path, tmp, 'file watch event path ok')
+    })
+
+    status.once('file imported', function (file) {
+      t.equal(file.mode, 'created', 'created')
+      t.equal(status.fileCount, 3, 'file count')
+      t.equal(status.totalSize, 11, 'total size')
+      t.equal(status.bytesImported, 11, 'bytes imported')
 
       status.once('file imported', function (file) {
-        t.equal(file.mode, 'created', 'created')
+        t.equal(file.mode, 'updated', 'updated')
         t.equal(status.fileCount, 3, 'file count')
-        t.equal(status.totalSize, 11, 'total size')
-        t.equal(status.bytesImported, 11, 'bytes imported')
-
-        status.once('file watch event', function (file) {
-          t.equal(file.mode, 'updated', 'updated')
-        })
-
-        status.once('file imported', function (file) {
-          t.equal(file.mode, 'updated', 'updated')
-          t.equal(status.fileCount, 3, 'file count')
-          t.equal(status.totalSize, 12, 'total size')
-          t.equal(status.bytesImported, 12, 'bytes imported')
-          status.close()
-          fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
-        })
-
-        fs.writeFile(tmp, 'you', function (err) { t.error(err, 'file updated') })
+        t.equal(status.totalSize, 12, 'total size')
+        t.equal(status.bytesImported, 14, 'bytes imported')
+        status.close()
+        fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
       })
-      fs.writeFile(tmp, 'yo', function (err) { t.error(err, 'file created') })
+
+      fs.writeFile(tmp, 'you', function (err) { t.error(err, 'file updated') })
     })
+    fs.writeFile(tmp, 'yo', function (err) { t.error(err, 'file created') })
   })
-}
+})
 
 test('optional callback', function (t) {
   t.plan(1)

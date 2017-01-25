@@ -6,12 +6,10 @@ var join = require('path').join
 var relative = require('path').relative
 var basename = require('path').basename
 var EventEmitter = require('events').EventEmitter
-var chokidar = require('chokidar')
+var recursiveWatch = require('recursive-watch')
 var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
-
-var noop = function () {}
 
 module.exports = function (archive, target, opts, cb) {
   if (typeof opts === 'function') {
@@ -30,43 +28,28 @@ module.exports = function (archive, target, opts, cb) {
 
   var basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
   var entries = {}
-  var watcher
+  var closeWatcher
 
   if (watch && archive.live) {
-    watcher = chokidar.watch([target], {
-      persistent: true,
-      ignored: opts.ignore
-    })
-    watcher.once('ready', function () {
-      watcher.on('add', function (file, stat) {
-        status.emit('file watch event', {path: file, mode: 'created'})
-        consume(file, stat)
-      })
-      watcher.on('change', function (file, stat) {
-        status.emit('file watch event', {path: file, mode: 'updated'})
-        consume(file, stat)
-      })
-      watcher.on('unlink', noop) // TODO
+    closeWatcher = recursiveWatch(target, function (file) {
+      status.emit('file watch event', {path: file, mode: ''}) // keep mode for backwards compat. we dont know updated|created
+      consume(file)
     })
   }
 
   var status = new EventEmitter()
-  status.close = function () { watcher && watcher.close() }
+  status.close = function () { closeWatcher && closeWatcher() }
   status.fileCount = 0
   status.totalSize = 0
   status.bytesImported = 0
 
-  function consume (file, stat, cb) {
+  function consume (file, cb) {
     cb = cb || emitError
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    if (stat) {
+    fs.stat(file, function (err, stat) {
+      if (err) return cb(err)
       onstat(stat)
-    } else {
-      fs.stat(file, function (err, stat) {
-        if (err) return cb(err)
-        onstat(stat)
-      })
-    }
+    })
 
     function onstat (stat) {
       if (stat.isDirectory()) {
@@ -125,7 +108,6 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
-        if (watch) status.bytesImported -= entry.length
         next('updated')
       } else {
         status.bytesImported += stat.size
@@ -148,7 +130,7 @@ module.exports = function (archive, target, opts, cb) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
           return function (done) {
-            consume(join(file, _file), null, done)
+            consume(join(file, _file), done)
           }
         }), cb)
       })
@@ -165,7 +147,7 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   function next () {
-    consume(target, null, cb)
+    consume(target, cb)
   }
 
   if (opts.resume) {
