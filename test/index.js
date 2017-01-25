@@ -264,7 +264,6 @@ test('duplicate subdirectory', function (t) {
           t.error(err)
 
           entries = sort(entries)
-          console.log(entries)
           t.equal(entries.length, 4)
           t.equal(entries[0].name, '')
           t.equal(entries[1].name, 'c')
