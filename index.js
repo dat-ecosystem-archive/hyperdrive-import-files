@@ -108,7 +108,6 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
-        if (watch) status.bytesImported -= entry.length
         next('updated')
       } else {
         status.bytesImported += stat.size

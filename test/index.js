@@ -184,7 +184,7 @@ test('resume & live', function (t) {
         t.equal(file.mode, 'updated', 'updated')
         t.equal(status.fileCount, 3, 'file count')
         t.equal(status.totalSize, 12, 'total size')
-        t.equal(status.bytesImported, 12, 'bytes imported')
+        t.equal(status.bytesImported, 14, 'bytes imported')
         status.close()
         fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
       })
