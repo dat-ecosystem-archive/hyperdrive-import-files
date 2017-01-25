@@ -28,14 +28,17 @@ module.exports = function (archive, target, opts, cb) {
 
   var basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
   var entries = {}
-  var watcher
+  var closeWatcher
 
   if (watch && archive.live) {
-    watcher = recursiveWatch(target, consume)
+    closeWatcher = recursiveWatch(target, function (file) {
+      status.emit('file watch event', {path: file, mode: ''}) // keep mode for backwards compat. we dont know updated|created
+      consume(file)
+    })
   }
 
   var status = new EventEmitter()
-  status.close = function () { watcher && watcher() }
+  status.close = function () { closeWatcher && closeWatcher() }
   status.fileCount = 0
   status.totalSize = 0
   status.bytesImported = 0
@@ -43,7 +46,6 @@ module.exports = function (archive, target, opts, cb) {
   function consume (file, cb) {
     cb = cb || emitError
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    status.emit('file watch event', {path: file, mode: 'updated'})
     fs.stat(file, function (err, stat) {
       if (err) return cb(err)
       onstat(stat)

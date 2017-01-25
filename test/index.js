@@ -178,7 +178,7 @@ if (!process.env.TRAVIS) {
         t.equal(status.bytesImported, 11, 'bytes imported')
 
         status.once('file watch event', function (file) {
-          t.equal(file.mode, 'updated', 'updated')
+          t.equal(file.path, tmp, 'file path')
         })
 
         status.once('file imported', function (file) {
