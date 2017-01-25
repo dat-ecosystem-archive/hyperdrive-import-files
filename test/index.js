@@ -159,7 +159,7 @@ test('resume with raf', function (t) {
 })
 
 test('resume & live', function (t) {
-  t.plan(13)
+  t.plan(14)
 
   var drive = hyperdrive(memdb())
   var archive = drive.createArchive()
@@ -170,15 +170,16 @@ test('resume & live', function (t) {
     t.error(err, 'initial import')
     var tmp = path.join(__dirname, '/fixture/a/b/c/', Math.random().toString(16).slice(2))
 
+    status.on('file watch event', function (file) {
+      // Should fire twice, once for create and once for update
+      t.equal(file.path, tmp, 'file path')
+    })
+
     status.once('file imported', function (file) {
       t.equal(file.mode, 'created', 'created')
       t.equal(status.fileCount, 3, 'file count')
       t.equal(status.totalSize, 11, 'total size')
       t.equal(status.bytesImported, 11, 'bytes imported')
-
-      status.once('file watch event', function (file) {
-        t.equal(file.path, tmp, 'file path')
-      })
 
       status.once('file imported', function (file) {
         t.equal(file.mode, 'updated', 'updated')
