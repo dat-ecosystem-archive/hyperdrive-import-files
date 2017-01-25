@@ -172,7 +172,7 @@ test('resume & live', function (t) {
 
     status.on('file watch event', function (file) {
       // Should fire twice, once for create and once for update
-      t.equal(file.path, tmp, 'file path')
+      t.equal(file.path, tmp, 'file watch event path ok')
     })
 
     status.once('file imported', function (file) {
