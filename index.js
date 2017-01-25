@@ -9,6 +9,7 @@ var EventEmitter = require('events').EventEmitter
 var chokidar = require('chokidar')
 var series = require('run-series')
 var match = require('anymatch')
+var through = require('through2')
 
 var noop = function () {}
 
@@ -18,8 +19,10 @@ module.exports = function (archive, target, opts, cb) {
     opts = {}
   }
   opts = opts || {}
+  var watch = opts.watch || opts.live
 
   var overwrite = opts.overwrite !== false
+  var dryRun = opts.dryRun === true
   function emitError (err) {
     if (err) status.emit('error', err)
   }
@@ -29,14 +32,20 @@ module.exports = function (archive, target, opts, cb) {
   var entries = {}
   var watcher
 
-  if (opts.live) {
+  if (watch && archive.live) {
     watcher = chokidar.watch([target], {
       persistent: true,
       ignored: opts.ignore
     })
     watcher.once('ready', function () {
-      watcher.on('add', consume)
-      watcher.on('change', consume)
+      watcher.on('add', function (file, stat) {
+        status.emit('file watch event', {path: file, mode: 'created'})
+        consume(file, stat)
+      })
+      watcher.on('change', function (file, stat) {
+        status.emit('file watch event', {path: file, mode: 'updated'})
+        consume(file, stat)
+      })
       watcher.on('unlink', noop) // TODO
     })
   }
@@ -45,17 +54,27 @@ module.exports = function (archive, target, opts, cb) {
   status.close = function () { watcher && watcher.close() }
   status.fileCount = 0
   status.totalSize = 0
+  status.bytesImported = 0
 
-  function consume (file, cb) {
+  function consume (file, stat, cb) {
+    cb = cb || emitError
     if (opts.ignore && match(opts.ignore, file)) return cb()
-    fs.stat(file, function (err, stat) {
-      if (err) return cb(err)
+    if (stat) {
+      onstat(stat)
+    } else {
+      fs.stat(file, function (err, stat) {
+        if (err) return cb(err)
+        onstat(stat)
+      })
+    }
+
+    function onstat (stat) {
       if (stat.isDirectory()) {
         consumeDir(file, stat, cb)
       } else {
         consumeFile(file, stat, cb)
       }
-    })
+    }
   }
 
   function consumeFile (file, stat, cb) {
@@ -64,23 +83,31 @@ module.exports = function (archive, target, opts, cb) {
       ? joinHyperPath(basePath, basename(file))
       : joinHyperPath(basePath, relative(target, file))
     function next (mode) {
+      if (dryRun) {
+        return pumpDone()
+      }
       var rs = fs.createReadStream(file)
       var ws = archive.createFileWriteStream({
         name: hyperPath,
         mtime: stat.mtime
-      })
+      }, {indexing: opts.indexing})
       entry = entries[hyperPath] = entry || {}
       entry.length = stat.size
       entry.mtime = stat.mtime.getTime()
+      var increment = through(function (chunk, enc, cb) {
+        status.bytesImported += chunk.length
+        cb(null, chunk)
+      })
 
-      pump(rs, ws, function (err) {
+      pump(rs, increment, ws, pumpDone)
+      function pumpDone (err) {
         if (err) return cb(err)
         status.emit('file imported', {
           path: file,
           mode: mode
         })
         cb()
-      })
+      }
     }
     var entry = entries[hyperPath]
 
@@ -98,8 +125,10 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         status.totalSize = status.totalSize - entry.length + stat.size
+        if (watch) status.bytesImported -= entry.length
         next('updated')
       } else {
+        status.bytesImported += stat.size
         status.emit('file skipped', { path: file })
         cb()
       }
@@ -119,13 +148,13 @@ module.exports = function (archive, target, opts, cb) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
           return function (done) {
-            consume(join(file, _file), done)
+            consume(join(file, _file), null, done)
           }
         }), cb)
       })
     }
 
-    if (entry) {
+    if (dryRun || entry) {
       next()
     } else {
       archive.append({
@@ -136,7 +165,7 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   function next () {
-    consume(target, cb || emitError)
+    consume(target, null, cb)
   }
 
   if (opts.resume) {
