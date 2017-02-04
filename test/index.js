@@ -339,6 +339,52 @@ test('dry run', function (t) {
   })
 })
 
+test('compareFileContent', function (t) {
+  t.plan(13)
+
+  var drive = hyperdrive(memdb())
+  var dir = path.join(__dirname, '/fixture/a/b/c/')
+  var archive = drive.createArchive({
+    file: function (name) {
+      return raf(path.join(dir, name))
+    }
+  })
+  var status = hyperImport(archive, dir, {
+    resume: true,
+    compareFileContent: true
+  }, function (err) {
+    t.error(err)
+    var dPath = path.join(__dirname, '/fixture/a/b/c/d.txt')
+    fs.writeFileSync(dPath, fs.readFileSync(dPath))
+    status = hyperImport(archive, dir, {
+      resume: true,
+      compareFileContent: true
+    }, function (err) {
+      t.error(err)
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
+    })
+    status.on('file imported', function (file) {
+      t.fail('should not occur')
+    })
+  })
+
+  var i = 0
+  status.on('file imported', function (file) {
+    t.equal(file.mode, 'created', 'created')
+    if (!i++) {
+      t.equal(status.fileCount, 1)
+      t.equal(status.totalSize, 4)
+      t.equal(status.bytesImported, 4)
+    } else {
+      t.equal(status.fileCount, 2)
+      t.equal(status.totalSize, 9)
+      t.equal(status.bytesImported, 9)
+    }
+  })
+})
+
 // NOTE: this test must be last
 test('chokidar bug', function (t) {
   // chokidar sometimes keeps the process open

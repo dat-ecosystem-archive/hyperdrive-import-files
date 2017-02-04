@@ -24,6 +24,7 @@ module.exports = function (archive, target, opts, cb) {
 
   var overwrite = opts.overwrite !== false
   var dryRun = opts.dryRun === true
+  var compareFileContent = opts.compareFileContent === true
   function emitError (err) {
     if (err) status.emit('error', err)
   }
@@ -125,14 +126,22 @@ module.exports = function (archive, target, opts, cb) {
         status.totalSize += stat.size
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
-        isDuplicate(archive, file, hyperPath, function (err, duplicate) {
-          if (!err && duplicate) return skip()
-          status.totalSize = status.totalSize - entry.length + stat.size
-          if (watch) status.bytesImported -= entry.length
-          next('updated')
-        })
+        if (compareFileContent) {
+          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+            if (!err && duplicate) return skip()
+            addChanged()
+          })
+        } else {
+          addChanged()
+        }
       } else {
         skip()
+      }
+
+      function addChanged () {
+        status.totalSize = status.totalSize - entry.length + stat.size
+        if (watch) status.bytesImported -= entry.length
+        next('updated')
       }
 
       function skip () {
