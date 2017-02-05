@@ -10,6 +10,7 @@ var chokidar = require('chokidar')
 var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
+var isDuplicate = require('hyperdrive-duplicate')
 
 var noop = function () {}
 
@@ -23,6 +24,7 @@ module.exports = function (archive, target, opts, cb) {
 
   var overwrite = opts.overwrite !== false
   var dryRun = opts.dryRun === true
+  var compareFileContent = opts.compareFileContent === true
   function emitError (err) {
     if (err) status.emit('error', err)
   }
@@ -124,10 +126,25 @@ module.exports = function (archive, target, opts, cb) {
         status.totalSize += stat.size
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
+        if (compareFileContent) {
+          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+            if (!err && duplicate) return skip()
+            addChanged()
+          })
+        } else {
+          addChanged()
+        }
+      } else {
+        skip()
+      }
+
+      function addChanged () {
         status.totalSize = status.totalSize - entry.length + stat.size
         if (watch) status.bytesImported -= entry.length
         next('updated')
-      } else {
+      }
+
+      function skip () {
         status.bytesImported += stat.size
         status.emit('file skipped', { path: file })
         cb()
