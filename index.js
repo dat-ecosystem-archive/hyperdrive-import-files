@@ -127,7 +127,7 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         if (compareFileContent) {
-          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+          isDuplicate(archive, file, entry.name, function (err, duplicate) {
             if (!err && duplicate) return skip()
             addChanged()
           })
