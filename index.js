@@ -189,7 +189,7 @@ module.exports = function (archive, target, opts, cb) {
     archive.list({ live: false })
     .on('error', cb)
     .on('data', function (entry) {
-      entries[entry.name] = entry
+      entries[normalizeEntryPath(entry.name)] = entry
       if (entry.type === 'directory') return
       status.fileCount++
       status.totalSize += entry.length
@@ -200,6 +200,13 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   return status
+}
+
+function normalizeEntryPath (path) {
+  if (typeof path === 'string' && !path.startsWith('/')) {
+    return '/' + path
+  }
+  return path
 }
 
 function joinHyperPath (base, path) {
