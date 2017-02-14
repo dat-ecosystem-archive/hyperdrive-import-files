@@ -216,5 +216,5 @@ function joinHyperPath (base, path) {
     // in hyperdrive, root should be '' or '/', so we replace it with this special case
     return ''
   }
-  return path
+  return normalizeEntryPath(path)
 }
