@@ -127,7 +127,7 @@ module.exports = function (archive, target, opts, cb) {
         next('created')
       } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         if (compareFileContent) {
-          isDuplicate(archive, file, entry.name, function (err, duplicate) {
+          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
             if (!err && duplicate) return skip()
             addChanged()
           })
@@ -203,8 +203,8 @@ module.exports = function (archive, target, opts, cb) {
 }
 
 function normalizeEntryPath (path) {
-  if (typeof path === 'string' && !path.startsWith('/')) {
-    return '/' + path
+  if (typeof path === 'string' && path.charAt(0) === '/') {
+    return path.slice(1)
   }
   return path
 }
