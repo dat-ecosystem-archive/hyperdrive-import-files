@@ -189,7 +189,7 @@ module.exports = function (archive, target, opts, cb) {
     archive.list({ live: false })
     .on('error', cb)
     .on('data', function (entry) {
-      entries[entry.name] = entry
+      entries[normalizeEntryPath(entry.name)] = entry
       if (entry.type === 'directory') return
       status.fileCount++
       status.totalSize += entry.length
@@ -202,6 +202,13 @@ module.exports = function (archive, target, opts, cb) {
   return status
 }
 
+function normalizeEntryPath (path) {
+  if (typeof path === 'string' && path.charAt(0) === '/') {
+    return path.slice(1)
+  }
+  return path
+}
+
 function joinHyperPath (base, path) {
   path = join(base, path)
   if (path === '.') {
@@ -209,5 +216,5 @@ function joinHyperPath (base, path) {
     // in hyperdrive, root should be '' or '/', so we replace it with this special case
     return ''
   }
-  return path
+  return normalizeEntryPath(path)
 }
