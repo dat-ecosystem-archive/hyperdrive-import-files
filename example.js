@@ -12,3 +12,7 @@ var status = hyperImport(archive, target, { live: true }, function (err) {
   console.log('done')
   console.log('file count', status.fileCount)
 })
+
+status.on('file imported', function (s) {
+  console.log('file imported %s %s', s.path, s.mode)
+})
