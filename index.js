@@ -89,10 +89,7 @@ module.exports = function (archive, target, opts, cb) {
         return pumpDone()
       }
       var rs = fs.createReadStream(file)
-      var ws = archive.createFileWriteStream({
-        name: hyperPath,
-        mtime: stat.mtime
-      }, {indexing: opts.indexing})
+      var ws = archive.createWriteStream(hyperPath, {indexing: opts.indexing})
       entry = entries[hyperPath] = entry || {}
       entry.length = stat.size
       entry.mtime = stat.mtime.getTime()
@@ -174,10 +171,12 @@ module.exports = function (archive, target, opts, cb) {
     if (dryRun || entry) {
       next()
     } else {
-      archive.append({
-        name: hyperPath,
-        type: 'directory'
-      }, next)
+      next()
+      // TODO: not doing this in v8?
+      // archive.append({
+      //   name: hyperPath,
+      //   type: 'directory'
+      // }, next)
     }
   }
 
@@ -186,7 +185,7 @@ module.exports = function (archive, target, opts, cb) {
   }
 
   if (opts.resume) {
-    archive.list({ live: false })
+    archive.history({ live: false })
     .on('error', cb)
     .on('data', function (entry) {
       entries[normalizeEntryPath(entry.name)] = entry
