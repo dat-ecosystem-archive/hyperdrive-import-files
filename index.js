@@ -11,7 +11,6 @@ var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
 var isDuplicate = require('hyperdrive-duplicate')
-var HyperdriveStat = require('hyperdrive/lib/stat')
 
 var noop = function () {}
 
@@ -32,8 +31,8 @@ module.exports = function (archive, target, opts, done) {
   done = done || emitError
 
   var basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
-  var entries = {}
   var watcher
+  var isWatching = false
 
   if (watch && archive.live) {
     watcher = chokidar.watch([target], {
@@ -85,15 +84,59 @@ module.exports = function (archive, target, opts, done) {
     var hyperPath = file === target
       ? joinHyperPath(basePath, basename(file))
       : joinHyperPath(basePath, relative(target, file))
+
+    archive.stat(hyperPath, function (err, st) {
+      if (overwrite) return add(st)
+      if (err && !st) return add()
+      status.emit('file skipped', { path: file })
+      cb()
+    })
+
+    function add (entry) {
+      // update the stats according to whether this is the initial import
+      if (!isWatching) {
+        // initial import, just add
+        status.fileCount++
+        status.totalSize += stat.size
+      } else {
+        if (entry) {
+          // watch update to existing file, remove old and add new
+          status.totalSize -= entry.size
+          status.totalSize += stat.size
+        } else {
+          // watch addition, just add
+          status.fileCount++
+          status.totalSize += stat.size
+        }
+      }
+      if (!entry) {
+        next('created')
+      } else if (entry.size !== stat.size || entry.mtime !== stat.mtime.getTime()) {
+        if (compareFileContent) {
+          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
+            if (!err && duplicate) return skip()
+            next('updated')
+          })
+        } else {
+          next('updated')
+        }
+      } else {
+        skip()
+      }
+
+      function skip () {
+        status.bytesImported += stat.size
+        status.emit('file skipped', { path: file })
+        cb()
+      }
+    }
+
     function next (mode) {
       if (dryRun) {
         return pumpDone()
       }
       var rs = fs.createReadStream(file)
       var ws = archive.createWriteStream(hyperPath, {indexing: opts.indexing})
-      entry = entries[hyperPath] = entry || {}
-      entry.size = stat.size
-      entry.mtime = stat.mtime.getTime()
       var increment = through(function (chunk, enc, cb) {
         status.bytesImported += chunk.length
         cb(null, chunk)
@@ -109,56 +152,13 @@ module.exports = function (archive, target, opts, done) {
         cb()
       }
     }
-    var entry = entries[hyperPath]
-
-    if (overwrite) return add()
-    archive.stat(hyperPath, function (err, st) {
-      if (err && !st) return add()
-      status.emit('file skipped', { path: file })
-      cb()
-    })
-
-    function add () {
-      if (!entry) {
-        status.fileCount++
-        status.totalSize += stat.size
-        next('created')
-      } else if (entry.size !== stat.size || entry.mtime !== stat.mtime.getTime()) {
-        if (compareFileContent) {
-          isDuplicate(archive, file, hyperPath, function (err, duplicate) {
-            if (!err && duplicate) return skip()
-            addChanged()
-          })
-        } else {
-          addChanged()
-        }
-      } else {
-        skip()
-      }
-
-      function addChanged () {
-        status.totalSize = status.totalSize - entry.size + stat.size
-        if (watch) status.bytesImported -= entry.size
-        next('updated')
-      }
-
-      function skip () {
-        status.bytesImported += stat.size
-        status.emit('file skipped', { path: file })
-        cb()
-      }
-    }
   }
 
   function consumeDir (file, stat, cb) {
     cb = cb || emitError
     var hyperPath = joinHyperPath(basePath, relative(target, file))
-    var entry = entries[hyperPath]
 
     function next () {
-      entry = entries[hyperPath] = entry || {}
-      entry.mtime = stat.mtime.getTime()
-
       fs.readdir(file, function (err, _files) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
@@ -169,35 +169,20 @@ module.exports = function (archive, target, opts, done) {
       })
     }
 
-    if (dryRun || entry) {
+    if (dryRun) {
       next()
     } else {
-      archive.mkdir(hyperPath, next)
+      archive.stat(hyperPath, function (err, st) {
+        if (!err && st) next()
+        else archive.mkdir(hyperPath, next)
+      })
     }
   }
 
-  function next () {
-    consume(target, null, done)
-  }
-
-  if (opts.resume) {
-    archive.history()
-    .on('error', done)
-    .on('data', function (data) {
-      var entry = {
-        name: data.name,
-        mtime: data.value.mtime,
-        size: data.value.size
-      }
-      entries[normalizeEntryPath(entry.name)] = entry
-      if (!HyperdriveStat(data.value).isFile()) return
-      status.fileCount++
-      status.totalSize += entry.size
-    })
-    .on('end', next)
-  } else {
-    next()
-  }
+  consume(target, null, function (err) {
+    isWatching = true
+    done(err)
+  })
 
   return status
 }
