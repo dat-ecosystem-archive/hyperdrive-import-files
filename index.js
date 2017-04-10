@@ -11,12 +11,13 @@ var series = require('run-series')
 var match = require('anymatch')
 var through = require('through2')
 var isDuplicate = require('hyperdrive-duplicate')
+var HyperdriveStat = require('hyperdrive/lib/stat')
 
 var noop = function () {}
 
-module.exports = function (archive, target, opts, cb) {
+module.exports = function (archive, target, opts, done) {
   if (typeof opts === 'function') {
-    cb = opts
+    done = opts
     opts = {}
   }
   opts = opts || {}
@@ -28,7 +29,7 @@ module.exports = function (archive, target, opts, cb) {
   function emitError (err) {
     if (err) status.emit('error', err)
   }
-  cb = cb || emitError
+  done = done || emitError
 
   var basePath = (typeof opts.basePath === 'string') ? opts.basePath : ''
   var entries = {}
@@ -91,7 +92,7 @@ module.exports = function (archive, target, opts, cb) {
       var rs = fs.createReadStream(file)
       var ws = archive.createWriteStream(hyperPath, {indexing: opts.indexing})
       entry = entries[hyperPath] = entry || {}
-      entry.length = stat.size
+      entry.size = stat.size
       entry.mtime = stat.mtime.getTime()
       var increment = through(function (chunk, enc, cb) {
         status.bytesImported += chunk.length
@@ -111,7 +112,7 @@ module.exports = function (archive, target, opts, cb) {
     var entry = entries[hyperPath]
 
     if (overwrite) return add()
-    archive.get(hyperPath, function (err, st) {
+    archive.stat(hyperPath, function (err, st) {
       if (err && !st) return add()
       status.emit('file skipped', { path: file })
       cb()
@@ -122,7 +123,7 @@ module.exports = function (archive, target, opts, cb) {
         status.fileCount++
         status.totalSize += stat.size
         next('created')
-      } else if (entry.length !== stat.size || entry.mtime !== stat.mtime.getTime()) {
+      } else if (entry.size !== stat.size || entry.mtime !== stat.mtime.getTime()) {
         if (compareFileContent) {
           isDuplicate(archive, file, hyperPath, function (err, duplicate) {
             if (!err && duplicate) return skip()
@@ -136,8 +137,8 @@ module.exports = function (archive, target, opts, cb) {
       }
 
       function addChanged () {
-        status.totalSize = status.totalSize - entry.length + stat.size
-        if (watch) status.bytesImported -= entry.length
+        status.totalSize = status.totalSize - entry.size + stat.size
+        if (watch) status.bytesImported -= entry.size
         next('updated')
       }
 
@@ -161,8 +162,8 @@ module.exports = function (archive, target, opts, cb) {
       fs.readdir(file, function (err, _files) {
         if (err) return cb(err)
         series(_files.map(function (_file) {
-          return function (done) {
-            consume(join(file, _file), null, done)
+          return function (cb2) {
+            consume(join(file, _file), null, cb2)
           }
         }), cb)
       })
@@ -171,27 +172,27 @@ module.exports = function (archive, target, opts, cb) {
     if (dryRun || entry) {
       next()
     } else {
-      next()
-      // TODO: not doing this in v8?
-      // archive.append({
-      //   name: hyperPath,
-      //   type: 'directory'
-      // }, next)
+      archive.mkdir(hyperPath, next)
     }
   }
 
   function next () {
-    consume(target, null, cb)
+    consume(target, null, done)
   }
 
   if (opts.resume) {
-    archive.history({ live: false })
-    .on('error', cb)
-    .on('data', function (entry) {
+    archive.history()
+    .on('error', done)
+    .on('data', function (data) {
+      var entry = {
+        name: data.name,
+        mtime: data.value.mtime,
+        size: data.value.size
+      }
       entries[normalizeEntryPath(entry.name)] = entry
-      if (entry.type === 'directory') return
+      if (!HyperdriveStat(data.value).isFile()) return
       status.fileCount++
-      status.totalSize += entry.length
+      status.totalSize += entry.size
     })
     .on('end', next)
   } else {
