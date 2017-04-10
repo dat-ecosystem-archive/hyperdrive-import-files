@@ -75,17 +75,13 @@ test('resume', function (t) {
 
   var archive = hyperdrive(tmpdir())
   archive.ready(function () {
-    var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
-      resume: true
-    }, function (err) {
+    var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), function (err) {
       t.error(err)
       archive.createWriteStream('d.txt').on('finish', function () {
-        status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
-          resume: true
-        }, function (err) {
+        status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), function (err) {
           t.error(err)
-          t.equal(status.fileCount, 3)
-          t.equal(status.totalSize, 13)
+          t.equal(status.fileCount, 2)
+          t.equal(status.totalSize, 9)
           t.equal(status.bytesImported, 9)
         })
         status.on('file imported', function (file) {
@@ -167,7 +163,6 @@ if (!process.env.TRAVIS) {
     var archive = hyperdrive(tmpdir())
     archive.ready(function () {
       var status = hyperImport(archive, path.join(__dirname, '/fixture/a/b/c/'), {
-        resume: true,
         live: true
       }, function (err) {
         t.error(err, 'initial import')
@@ -187,7 +182,7 @@ if (!process.env.TRAVIS) {
             t.equal(file.mode, 'updated', 'updated')
             t.equal(status.fileCount, 3, 'file count')
             t.equal(status.totalSize, 12, 'total size')
-            t.equal(status.bytesImported, 12, 'bytes imported')
+            t.equal(status.bytesImported, 14, 'bytes imported')
             status.close()
             fs.unlink(tmp, function (err) { t.error(err, 'file removed') })
           })
