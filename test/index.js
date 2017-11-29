@@ -248,7 +248,7 @@ test('duplicate subdirectory', function (t) {
 
   hyperImport(archive, directory, function (err) {
     t.error(err)
-    fs.utimes(path.join(directory, 'c'), NaN, NaN, function () {
+    fs.utimes(path.join(directory, 'c'), 0, 0, function () {
       hyperImport(archive, directory, {
         resume: true
       }, function (err) {
